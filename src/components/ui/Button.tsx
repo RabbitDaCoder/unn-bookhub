@@ -1,31 +1,96 @@
-import { type ButtonHTMLAttributes, type ReactNode } from "react";
-import { cn } from "../../lib/utils";
+import React from 'react';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "ghost" | "outline" | "danger";
-  children: ReactNode;
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Size = 'sm' | 'md' | 'lg';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  size?: Size;
+  fullWidth?: boolean;
+  loading?: boolean;
 }
 
-export default function Button({
-  variant = "primary",
-  className,
+export function Button({
   children,
-  ...props
+  variant = 'primary',
+  size = 'md',
+  fullWidth,
+  loading,
+  style,
+  disabled,
+  ...rest
 }: ButtonProps) {
-  const base =
-    "inline-flex items-center justify-center rounded-2xl px-5 py-3 font-semibold transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary/50 disabled:opacity-50 disabled:cursor-not-allowed";
-  const variantStyles = {
-    primary:
-      "bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-lg shadow-emerald-500/20",
-    ghost: "bg-white/90 text-slate-900 hover:bg-white border border-border",
-    outline:
-      "bg-transparent text-white border border-white/20 hover:bg-white/10",
-    danger: "bg-red-600 text-white hover:bg-red-500",
+  const colors: Record<Variant, { bg: string; color: string; border?: string; hover?: string }> = {
+    primary: {
+      bg: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
+      color: '#0f172a',
+      hover: 'linear-gradient(135deg, var(--amber-500), var(--amber-600))',
+    },
+    secondary: {
+      bg: 'var(--bg-elevated)',
+      color: 'var(--text-1)',
+      border: '1px solid var(--border-default)',
+      hover: 'var(--bg-card-hover)',
+    },
+    ghost: {
+      bg: 'transparent',
+      color: 'var(--text-1)',
+      hover: 'var(--layer-05)',
+      border: '1px solid var(--border-subtle)',
+    },
+    danger: {
+      bg: 'rgba(248,113,113,0.14)',
+      color: 'var(--error)',
+      border: '1px solid rgba(248,113,113,0.4)',
+      hover: 'rgba(248,113,113,0.22)',
+    },
+  };
+
+  const sizes: Record<Size, { py: number; px: number; fs: number; rd: string }> = {
+    sm: { py: 8, px: 12, fs: 13, rd: '10px' },
+    md: { py: 12, px: 14, fs: 14, rd: '12px' },
+    lg: { py: 14, px: 16, fs: 15, rd: '12px' },
+  };
+
+  const c = colors[variant];
+  const s = sizes[size];
+
+  const base: React.CSSProperties = {
+    background: c.bg,
+    color: c.color,
+    border: c.border,
+    padding: `${s.py}px ${s.px}px`,
+    borderRadius: s.rd,
+    fontWeight: 700,
+    fontSize: s.fs,
+    width: fullWidth ? '100%' : undefined,
+    cursor: disabled || loading ? 'not-allowed' : 'pointer',
+    opacity: disabled || loading ? 0.6 : 1,
+    transition: 'background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease',
+    boxShadow: variant === 'primary' ? '0 10px 30px rgba(245,158,11,0.25)' : undefined,
   };
 
   return (
-    <button className={cn(base, variantStyles[variant], className)} {...props}>
-      {children}
+    <button
+      {...rest}
+      disabled={disabled || loading}
+      style={{ ...base, ...style }}
+      onMouseEnter={(e) => {
+        if (c.hover) e.currentTarget.style.background = c.hover;
+      }}
+      onMouseLeave={(e) => {
+        if (c.hover) e.currentTarget.style.background = c.bg;
+      }}
+      onMouseDown={(e) => {
+        e.currentTarget.style.transform = 'translateY(1px)';
+      }}
+      onMouseUp={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)';
+      }}
+    >
+      {loading ? '···' : children}
     </button>
   );
 }
+
+export default Button;

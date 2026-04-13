@@ -1,18 +1,19 @@
-interface SpinnerProps {
-  size?: "sm" | "md" | "lg";
-  className?: string;
-}
+import React from 'react';
 
-const sizeMap = {
-  sm: "w-4 h-4 border-[3px]",
-  md: "w-6 h-6 border-4",
-  lg: "w-10 h-10 border-4",
-};
-
-export default function Spinner({ size = "md", className }: SpinnerProps) {
+export function Spinner({ size = 18 }: { size?: number }) {
+  const thickness = Math.max(2, Math.round(size / 9));
   return (
     <div
-      className={`inline-block rounded-full border-white/20 border-t-white animate-spin ${sizeMap[size]} ${className ?? ""}`}
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        border: `${thickness}px solid var(--layer-08)`,
+        borderTopColor: 'var(--amber-400)',
+        animation: 'spin 0.8s linear infinite',
+      }}
     />
   );
 }
+
+export default Spinner;

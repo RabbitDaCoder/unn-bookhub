@@ -9,25 +9,23 @@ import { useAuthStore, useUIStore } from "./store/useStore";
 import { onAuthChange, getUserFromFirestore } from "./firebase";
 import { cn } from "./lib/utils";
 
-// Components
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import AuthGuard from "./components/AuthGuard";
 import { ToastProvider } from "./components/ui/ToastContext";
 
-// Pages
-import Home from "./pages/Home";
+import HomePage from "./pages/HomePage";
 import BooksPage from "./pages/BooksPage";
 import BookDetailPage from "./pages/BookDetail";
 import Library from "./pages/Library";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import Dashboard from "./pages/DashboardPage";
-import Profile from "./pages/ProfilePage";
-import CartPage from "./pages/Cart";
-import CheckoutPage from "./pages/Checkout";
-import Orders from "./pages/Orders";
-import OrderDetail from "./pages/OrderDetail";
+import DashboardPage from "./pages/DashboardPage";
+import ProfilePage from "./pages/ProfilePage";
+import CartPage from "./pages/CartPage";
+import CheckoutPage from "./pages/CheckoutPage";
+import OrdersPage from "./pages/OrdersPage";
+import OrderDetailPage from "./pages/OrderDetailPage";
 import Complaints from "./pages/Complaints";
 import NewComplaint from "./pages/NewComplaint";
 import ComplaintDetail from "./pages/ComplaintDetail";
@@ -69,13 +67,9 @@ export default function App() {
           <Navbar />
           <main className="flex-grow">
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<HomePage />} />
               <Route path="/books" element={<BooksPage />} />
               <Route path="/books/:id" element={<BookDetailPage />} />
-              <Route
-                path="/bookshelf"
-                element={<Navigate to="/books" replace />}
-              />
               <Route path="/library" element={<Library />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
@@ -84,7 +78,7 @@ export default function App() {
                 path="/dashboard"
                 element={
                   <AuthGuard>
-                    <Dashboard />
+                    <DashboardPage />
                   </AuthGuard>
                 }
               />
@@ -92,7 +86,7 @@ export default function App() {
                 path="/profile"
                 element={
                   <AuthGuard>
-                    <Profile />
+                    <ProfilePage />
                   </AuthGuard>
                 }
               />
@@ -109,7 +103,7 @@ export default function App() {
                 path="/orders"
                 element={
                   <AuthGuard>
-                    <Orders />
+                    <OrdersPage />
                   </AuthGuard>
                 }
               />
@@ -117,7 +111,7 @@ export default function App() {
                 path="/orders/:id"
                 element={
                   <AuthGuard>
-                    <OrderDetail />
+                    <OrderDetailPage />
                   </AuthGuard>
                 }
               />

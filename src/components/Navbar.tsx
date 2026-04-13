@@ -1,302 +1,320 @@
-import React, { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useAuthStore, useCartStore } from "../store/useStore";
-import { logOut } from "../firebase";
+import React, { useMemo, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuthStore, useCartStore } from '../store/useStore';
+import { logOut } from '../firebase';
+import { useIsMobile } from '../hooks/useIsMobile';
 
 export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
   const { user, userProfile, loading } = useAuthStore();
   const { totalItems } = useCartStore();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const isMobile = useIsMobile(900);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await logOut();
-    setDropdownOpen(false);
-    setMenuOpen(false);
-    navigate("/");
-  };
+  const links = useMemo(
+    () => [
+      { label: 'Home', to: '/' },
+      { label: 'Bookstore', to: '/books' },
+      { label: 'Library', to: '/library' },
+      { label: 'Dashboard', to: '/dashboard', auth: true },
+      { label: 'Orders', to: '/orders', auth: true },
+    ],
+    [],
+  );
 
   const isActive = (path: string) => location.pathname === path;
+
+  const brand = (
+    <Link
+      to="/"
+      style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
+      onClick={() => setMenuOpen(false)}
+    >
+      <div
+        style={{
+          width: 38,
+          height: 38,
+          borderRadius: 12,
+          background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
+          display: 'grid',
+          placeItems: 'center',
+          color: '#0f172a',
+          fontWeight: 800,
+          boxShadow: '0 10px 28px rgba(245,158,11,0.25)',
+        }}
+      >
+        ??
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{ color: 'var(--text-1)', fontWeight: 800, fontSize: 17 }}>UNN BookHub</span>
+        <span style={{ color: 'var(--text-3)', fontSize: 11, letterSpacing: 0.4 }}>University of Nigeria</span>
+      </div>
+    </Link>
+  );
+
+  const NavLinks = ({ variant }: { variant: 'desktop' | 'mobile' }) => (
+    <>
+      {links
+        .filter((l) => !l.auth || user)
+        .map((link) => (
+          <button
+            key={link.to}
+            onClick={() => {
+              setMenuOpen(false);
+              navigate(link.to);
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: isActive(link.to) ? 'var(--text-amber)' : 'var(--text-1)',
+              padding: variant === 'desktop' ? '10px 12px' : '16px 0',
+              borderBottom: variant === 'mobile' ? '1px solid var(--border-faint)' : 'none',
+              textAlign: variant === 'mobile' ? 'left' : 'center',
+              width: variant === 'mobile' ? '100%' : 'auto',
+              fontSize: variant === 'mobile' ? 22 : 14,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            {link.label}
+          </button>
+        ))}
+    </>
+  );
+
+  const hamburger = (
+    <button
+      aria-label="Toggle navigation"
+      onClick={() => setMenuOpen((v) => !v)}
+      style={{
+        width: 40,
+        height: 40,
+        background: 'var(--layer-05)',
+        border: '1px solid var(--border-default)',
+        borderRadius: 10,
+        display: 'grid',
+        placeItems: 'center',
+        cursor: 'pointer',
+      }}
+    >
+      <div style={{ position: 'relative', width: 18, height: 14 }}>
+        {[0, 1, 2].map((i) => {
+          const positions = [0, 6, 12];
+          const transform = menuOpen
+            ? i === 0
+              ? 'translateY(6px) rotate(45deg)'
+              : i === 1
+                ? 'scaleX(0)'
+                : 'translateY(-6px) rotate(-45deg)'
+            : `translateY(${positions[i]}px)`;
+          const opacity = menuOpen && i === 1 ? 0 : 1;
+          return (
+            <span
+              key={i}
+              style={{
+                position: 'absolute',
+                left: 0,
+                width: 18,
+                height: 2,
+                borderRadius: 999,
+                background: 'var(--text-1)',
+                transition: 'transform 0.2s ease, opacity 0.2s ease',
+                transform,
+                opacity,
+              }}
+            />
+          );
+        })}
+      </div>
+    </button>
+  );
+
+  const authArea = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {loading ? (
+        <div style={{ width: 90, height: 36, borderRadius: 12, background: 'var(--layer-08)' }} />
+      ) : user ? (
+        <button
+          onClick={() => navigate('/profile')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 10,
+            padding: '8px 12px',
+            background: 'var(--layer-05)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 12,
+            color: 'var(--text-1)',
+            cursor: 'pointer',
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: '50%',
+              background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
+              display: 'grid',
+              placeItems: 'center',
+              color: '#0f172a',
+              fontWeight: 800,
+            }}
+          >
+            {(userProfile?.fullName || user.email || 'UN')[0]}
+          </div>
+          <span style={{ fontWeight: 700, fontSize: 14 }}>
+            {userProfile?.fullName?.split(' ')[0] || user.email}
+          </span>
+        </button>
+      ) : (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link
+            to="/login"
+            style={{
+              border: '1px solid var(--border-default)',
+              color: 'var(--text-1)',
+              padding: '10px 12px',
+              borderRadius: 12,
+              fontWeight: 700,
+            }}
+          >
+            Login
+          </Link>
+          <Link
+            to="/register"
+            style={{
+              background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
+              color: '#0f172a',
+              padding: '10px 12px',
+              borderRadius: 12,
+              fontWeight: 800,
+            }}
+          >
+            Register
+          </Link>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <nav
       style={{
-        position: "sticky",
+        position: 'sticky',
         top: 0,
-        zIndex: 100,
-        background: "rgba(15, 23, 42, 0.95)",
-        backdropFilter: "blur(14px)",
-        borderBottom: "1px solid rgba(245, 158, 11, 0.18)",
+        zIndex: 150,
+        backdropFilter: 'blur(14px)',
+        background: 'rgba(15,23,42,0.92)',
+        borderBottom: '1px solid var(--border-faint)',
       }}
     >
       <div
+        className="container"
         style={{
-          maxWidth: 1200,
-          margin: "0 auto",
-          padding: "0 24px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          minHeight: 68,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          minHeight: 70,
+          gap: 16,
         }}
       >
-        <Link
-          to="/"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            textDecoration: "none",
-          }}
-        >
-          <img
-            src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcReTaeVz_LUxcpFrCvJfHElkABq1acTU1u4wQ&s"
-            alt="UNN BookHub logo"
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              objectFit: "cover",
-              background: "#f8fafc",
-            }}
-            referrerPolicy="no-referrer"
-          />
-          <div>
-            <div style={{ color: "#f8fafc", fontSize: 18, fontWeight: 700 }}>
-              UNN BookHub
-            </div>
-            <div style={{ color: "#cbd5e1", fontSize: 11, letterSpacing: 1.2 }}>
-              University of Nigeria, Nsukka
-            </div>
-          </div>
-        </Link>
+        {brand}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <Link
-            to="/"
-            style={{
-              color: isActive("/") ? "#f59e0b" : "#cbd5e1",
-              textDecoration: "none",
-              padding: "10px 14px",
-              borderRadius: 10,
-              background: isActive("/")
-                ? "rgba(245, 158, 11, 0.12)"
-                : "transparent",
-              fontWeight: 600,
-            }}
-          >
-            Home
-          </Link>
-          <Link
-            to="/books"
-            style={{
-              color: isActive("/books") ? "#f59e0b" : "#cbd5e1",
-              textDecoration: "none",
-              padding: "10px 14px",
-              borderRadius: 10,
-              background: isActive("/books")
-                ? "rgba(245, 158, 11, 0.12)"
-                : "transparent",
-              fontWeight: 600,
-            }}
-          >
-            Bookstore
-          </Link>
+        {!isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <NavLinks variant="desktop" />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Link
             to="/cart"
             style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              color: "#cbd5e1",
-              textDecoration: "none",
-              padding: "10px 14px",
-              borderRadius: 10,
-              background: "rgba(255,255,255,0.04)",
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              background: 'rgba(245,158,11,0.12)',
+              color: 'var(--text-amber)',
+              border: '1px solid var(--border-amber)',
+              padding: '10px 12px',
+              borderRadius: 12,
+              fontWeight: 700,
+              textDecoration: 'none',
             }}
           >
-            <span style={{ fontSize: 16 }}>🛒</span>
-            <span style={{ fontWeight: 600 }}>{totalItems} items</span>
+            ??
+            <span>{totalItems} items</span>
           </Link>
-        </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            onClick={() =>
-              window.dispatchEvent(new CustomEvent("toggle-theme"))
-            }
-            style={{
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 12,
-              padding: "10px 12px",
-              background: "transparent",
-              color: "#cbd5e1",
-              cursor: "pointer",
-            }}
-          >
-            🌙
-          </button>
-
-          {loading ? (
-            <div
-              style={{
-                width: 88,
-                height: 40,
-                borderRadius: 14,
-                background: "rgba(255,255,255,0.08)",
-              }}
-            />
-          ) : user ? (
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setDropdownOpen((open) => !open)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                  borderRadius: 14,
-                  padding: "10px 14px",
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  background: "rgba(255,255,255,0.04)",
-                  color: "#f8fafc",
-                  cursor: "pointer",
-                }}
-              >
-                <span style={{ fontSize: 14, fontWeight: 700 }}>
-                  {user.displayName
-                    ? user.displayName.split(" ")[0]
-                    : user.email}
-                </span>
-                <span style={{ fontSize: 14 }}>▾</span>
-              </button>
-
-              {dropdownOpen && (
-                <div
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: "110%",
-                    width: 220,
-                    borderRadius: 16,
-                    background: "#0f172a",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    boxShadow: "0 24px 48px rgba(0,0,0,0.35)",
-                    padding: 12,
-                    zIndex: 200,
-                  }}
-                >
-                  <Link
-                    to="/dashboard"
-                    onClick={() => setDropdownOpen(false)}
-                    style={{
-                      display: "block",
-                      padding: "10px 12px",
-                      color: "#e2e8f0",
-                      textDecoration: "none",
-                      borderRadius: 12,
-                      marginBottom: 6,
-                    }}
-                  >
-                    Dashboard
-                  </Link>
-                  <Link
-                    to="/orders"
-                    onClick={() => setDropdownOpen(false)}
-                    style={{
-                      display: "block",
-                      padding: "10px 12px",
-                      color: "#e2e8f0",
-                      textDecoration: "none",
-                      borderRadius: 12,
-                      marginBottom: 6,
-                    }}
-                  >
-                    My Orders
-                  </Link>
-                  {userProfile?.role === "admin" && (
-                    <Link
-                      to="/admin"
-                      onClick={() => setDropdownOpen(false)}
-                      style={{
-                        display: "block",
-                        padding: "10px 12px",
-                        color: "#e2e8f0",
-                        textDecoration: "none",
-                        borderRadius: 12,
-                        marginBottom: 6,
-                      }}
-                    >
-                      Admin Panel
-                    </Link>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    style={{
-                      width: "100%",
-                      border: "none",
-                      background: "#ef4444",
-                      color: "white",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                      fontWeight: 700,
-                      cursor: "pointer",
-                      marginTop: 6,
-                    }}
-                  >
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <Link
-                to="/login"
-                style={{
-                  color: "#cbd5e1",
-                  textDecoration: "none",
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  border: "1px solid rgba(255,255,255,0.12)",
-                  fontWeight: 600,
-                }}
-              >
-                Login
-              </Link>
-              <Link
-                to="/register"
-                style={{
-                  color: "#0f172a",
-                  background: "#f59e0b",
-                  textDecoration: "none",
-                  padding: "10px 14px",
-                  borderRadius: 12,
-                  fontWeight: 700,
-                }}
-              >
-                Register
-              </Link>
-            </div>
-          )}
-
-          <button
-            onClick={() => setMenuOpen((open) => !open)}
-            style={{
-              display: "none",
-              border: "1px solid rgba(255,255,255,0.12)",
-              borderRadius: 12,
-              padding: "10px 12px",
-              background: "transparent",
-              color: "#cbd5e1",
-              cursor: "pointer",
-            }}
-          >
-            Menu
-          </button>
+          {!isMobile && authArea}
+          {isMobile && hamburger}
         </div>
       </div>
+
+      {isMobile && menuOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15,23,42,0.98)',
+            backdropFilter: 'blur(20px)',
+            zIndex: 300,
+            display: 'flex',
+            flexDirection: 'column',
+            padding: '80px 32px 32px',
+            gap: 10,
+          }}
+        >
+          <NavLinks variant="mobile" />
+
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {user ? (
+              <>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    navigate('/profile');
+                  }}
+                  style={{
+                    border: '1px solid var(--border-default)',
+                    color: 'var(--text-1)',
+                    padding: '14px',
+                    borderRadius: 12,
+                    fontSize: 16,
+                    fontWeight: 600,
+                    background: 'transparent',
+                    cursor: 'pointer',
+                  }}
+                >
+                  View Profile
+                </button>
+                <button
+                  onClick={async () => {
+                    await logOut();
+                    setMenuOpen(false);
+                    navigate('/');
+                  }}
+                  style={{
+                    background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
+                    color: '#0f172a',
+                    padding: '14px',
+                    borderRadius: 12,
+                    fontSize: 16,
+                    fontWeight: 700,
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              authArea
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

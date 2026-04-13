@@ -1,34 +1,49 @@
-import { type ReactNode } from "react";
-import { cn } from "../../lib/utils";
+import React from 'react';
 
-interface BadgeProps {
-  variant?: "default" | "success" | "warning" | "error" | "accent";
-  children: ReactNode;
-  className?: string;
-}
+type Variant = 'amber' | 'success' | 'error' | 'neutral';
 
-const variantClasses: Record<string, string> = {
-  default: "bg-white/10 text-white",
-  success: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
-  warning: "bg-amber-500/15 text-amber-300 border border-amber-500/20",
-  error: "bg-red-500/15 text-red-300 border border-red-500/20",
-  accent: "bg-sky-500/15 text-sky-200 border border-sky-500/20",
-};
+export function Badge({ variant = 'neutral', children }: { variant?: Variant; children: React.ReactNode }) {
+  const styles: Record<Variant, React.CSSProperties> = {
+    amber: {
+      background: 'rgba(245,158,11,0.15)',
+      color: 'var(--text-amber)',
+      border: '1px solid var(--border-amber)',
+    },
+    success: {
+      background: 'rgba(16,185,129,0.12)',
+      color: 'var(--success)',
+      border: '1px solid rgba(16,185,129,0.25)',
+    },
+    error: {
+      background: 'rgba(248,113,113,0.12)',
+      color: 'var(--error)',
+      border: '1px solid rgba(248,113,113,0.25)',
+    },
+    neutral: {
+      background: 'var(--layer-05)',
+      color: 'var(--text-3)',
+      border: '1px solid var(--border-subtle)',
+    },
+  };
 
-export default function Badge({
-  variant = "default",
-  className,
-  children,
-}: BadgeProps) {
   return (
     <span
-      className={cn(
-        "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-[0.12em]",
-        variantClasses[variant],
-        className,
-      )}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '4px 10px',
+        borderRadius: '999px',
+        fontSize: 11,
+        fontWeight: 700,
+        letterSpacing: 0.5,
+        textTransform: 'uppercase',
+        ...styles[variant],
+      }}
     >
       {children}
     </span>
   );
 }
+
+export default Badge;

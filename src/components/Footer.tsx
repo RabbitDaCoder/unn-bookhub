@@ -1,108 +1,135 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Mail, Phone, MapPin, ExternalLink } from 'lucide-react';
-import { useUIStore } from '../store/useStore';
-import { cn } from '../lib/utils';
+import { Facebook, Twitter, Instagram, Mail, Phone, MapPin } from 'lucide-react';
 
 export default function Footer() {
-  const { isDarkMode } = useUIStore();
+  const badge = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '8px 12px',
+    borderRadius: 999,
+    background: 'rgba(245,158,11,0.12)',
+    border: '1px solid rgba(245,158,11,0.25)',
+    color: '#f59e0b',
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+  } as const;
+
+  const linkStyle = { color: 'var(--text-secondary)', textDecoration: 'none' } as const;
 
   return (
-    <footer className={cn(
-      "border-t pt-16 pb-8 transition-colors duration-300",
-      isDarkMode ? "bg-bg-dark border-primary/20 text-white" : "bg-bg-cream border-border text-text-dark"
-    )}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-          {/* Brand & Mission */}
-          <div className="space-y-6">
-            <div className="flex items-center space-x-3">
-              <img src="https://upload.wikimedia.org/wikipedia/en/5/5e/University_of_Nigeria_Nsukka_logo.png" alt="UNN Logo" className="h-12 w-12 object-contain" referrerPolicy="no-referrer" />
-              <div>
-                <h2 className="text-xl font-display font-bold leading-tight">UNN BookHub</h2>
-                <p className="text-[10px] uppercase tracking-widest opacity-70">University of Nigeria, Nsukka</p>
-              </div>
+    <footer
+      style={{
+        background: 'var(--bg-secondary)',
+        borderTop: '1px solid var(--border-strong)',
+        color: 'var(--text-primary)',
+        marginTop: 48,
+      }}
+    >
+      <div className="container" style={{ padding: '32px 0 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 24 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <div
+              style={{
+                width: 46,
+                height: 46,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #f59e0b, #d97706)',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#0f172a',
+                fontWeight: 800,
+                fontSize: 18,
+              }}
+            >
+              ??
             </div>
-            <p className="text-sm leading-relaxed opacity-80 italic">
-              "To restore the dignity of man" â€” Providing students and faculty with the highest quality academic resources through a modern, accessible digital platform.
-            </p>
-            <div className="flex space-x-4">
-              {[Facebook, Twitter, Instagram].map((Icon, i) => (
-                <a key={i} href="#" className="p-2 bg-primary/10 hover:bg-primary hover:text-white rounded-full transition-all">
-                  <Icon className="w-5 h-5" />
-                </a>
-              ))}
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 18 }}>UNN BookHub</div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: 12 }}>University of Nigeria, Nsukka</div>
             </div>
           </div>
-
-          {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-display font-bold mb-6 border-b-2 border-secondary w-fit">Quick Links</h3>
-            <ul className="space-y-4 text-sm">
-              {[
-                { name: 'Browse Bookshelf', path: '/bookshelf' },
-                { name: 'Nnamdi Azikiwe Library', path: '/library' },
-                { name: 'Author Directory', path: '/authors' },
-                { name: 'Student Dashboard', path: '/dashboard' },
-                { name: 'File a Complaint', path: '/complaints/new' },
-              ].map((link) => (
-                <li key={link.name}>
-                  <Link to={link.path} className="hover:text-secondary transition-colors flex items-center space-x-2">
-                    <span className="w-1.5 h-1.5 bg-secondary rounded-full" />
-                    <span>{link.name}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h3 className="text-lg font-display font-bold mb-6 border-b-2 border-secondary w-fit">Contact Us</h3>
-            <ul className="space-y-4 text-sm">
-              <li className="flex items-start space-x-3">
-                <MapPin className="w-5 h-5 text-secondary shrink-0" />
-                <span className="opacity-80">University of Nigeria, Nsukka, Enugu State, Nigeria.</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Phone className="w-5 h-5 text-secondary shrink-0" />
-                <span className="opacity-80">+234 (0) 800 UNN BOOK</span>
-              </li>
-              <li className="flex items-center space-x-3">
-                <Mail className="w-5 h-5 text-secondary shrink-0" />
-                <span className="opacity-80">support@bookhub.unn.edu.ng</span>
-              </li>
-            </ul>
-          </div>
-
-          {/* Newsletter */}
-          <div>
-            <h3 className="text-lg font-display font-bold mb-6 border-b-2 border-secondary w-fit">Stay Updated</h3>
-            <p className="text-sm mb-4 opacity-80">Subscribe to get notifications about new arrivals and library updates.</p>
-            <form className="space-y-2">
-              <input 
-                type="email" 
-                placeholder="Student Email" 
-                className="w-full bg-white/5 border border-primary/20 rounded-lg px-4 py-2 text-sm focus:outline-none focus:border-secondary transition-colors"
-                required
-              />
-              <button className="w-full bg-primary hover:bg-primary-light text-white py-2 rounded-lg text-sm font-bold transition-all">
-                Subscribe
-              </button>
-            </form>
+          <p style={{ color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            “To restore the dignity of man” — delivering trusted course texts and library access with a modern, mobile-first experience.
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[Facebook, Twitter, Instagram].map((Icon, i) => (
+              <a
+                key={i}
+                href="#"
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.06)',
+                  border: '1px solid var(--border-default)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  color: 'var(--text-primary)',
+                }}
+              >
+                <Icon size={18} />
+              </a>
+            ))}
           </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-primary/10 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-[10px] uppercase tracking-widest opacity-60">
-          <p>Â© {new Date().getFullYear()} University of Nigeria, Nsukka. All Rights Reserved.</p>
-          <div className="flex space-x-6">
-            <a href="#" className="hover:text-secondary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-secondary transition-colors">Terms of Service</a>
-            <a href="https://unn.edu.ng" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-1 hover:text-secondary transition-colors">
-              <span>UNN Official Site</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+        <div>
+          <h4 style={{ fontSize: 15, fontWeight: 800, marginBottom: 10 }}>Quick Links</h4>
+          <div style={{ display: 'grid', gap: 8 }}>
+            {[{ n: 'Bookstore', p: '/books' }, { n: 'Library', p: '/library' }, { n: 'Dashboard', p: '/dashboard' }, { n: 'Complaints', p: '/complaints/new' }].map((l) => (
+              <Link key={l.p} to={l.p} style={linkStyle}>
+                {l.n}
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 10 }}>
+          <h4 style={{ fontSize: 15, fontWeight: 800 }}>Contact</h4>
+          <div style={badge}><MapPin size={14} /> Nsukka campus, Enugu State</div>
+          <div style={badge}><Phone size={14} /> +234 800-BOOK-UNN</div>
+          <div style={badge}><Mail size={14} /> support@bookhub.unn.edu.ng</div>
+        </div>
+
+        <div style={{ display: 'grid', gap: 10 }}>
+          <h4 style={{ fontSize: 15, fontWeight: 800 }}>Stay Updated</h4>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Get alerts on new arrivals and library updates.</p>
+          <input
+            type="email"
+            placeholder="Student email"
+            style={{
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-default)',
+              borderRadius: 10,
+              padding: '10px 12px',
+              color: 'var(--text-primary)',
+            }}
+          />
+          <button
+            style={{
+              background: '#f59e0b',
+              color: '#0f172a',
+              border: 'none',
+              padding: '10px 12px',
+              borderRadius: 10,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Subscribe
+          </button>
+        </div>
+      </div>
+
+      <div style={{ borderTop: '1px solid var(--border-subtle)', padding: '16px 0' }}>
+        <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, fontSize: 11, color: 'var(--text-secondary)' }}>
+          <span>© {new Date().getFullYear()} UNN BookHub. All rights reserved.</span>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <a href="#" style={linkStyle}>Privacy</a>
+            <a href="#" style={linkStyle}>Terms</a>
           </div>
         </div>
       </div>

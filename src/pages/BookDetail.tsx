@@ -1,339 +1,347 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '../firebase';
-import { Book, Author, Review } from '../types';
-import { formatCurrency, formatDate, cn } from '../lib/utils';
-import { useCartStore, useUIStore, useAuthStore } from '../store/useStore';
-import { ShoppingCart, Library, Star, ChevronRight, ArrowLeft, Share2, Heart, Clock, CheckCircle2, AlertCircle, BookOpen } from 'lucide-react';
-import { motion } from 'motion/react';
+import React, { useMemo } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BookCover } from '../components/ui/BookCover';
+import { books } from '../data/books';
+import { useCartStore } from '../store/useStore';
+import { useIsMobile } from '../hooks/useIsMobile';
+import { ShoppingCart, ArrowLeft, CheckCircle, Clock3, Truck, Info, Sparkles } from 'lucide-react';
 
-export default function BookDetail() {
+const currency = new Intl.NumberFormat('en-NG', {
+  style: 'currency',
+  currency: 'NGN',
+  maximumFractionDigits: 0,
+});
+
+export default function BookDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [book, setBook] = useState<Book | null>(null);
-  const [author, setAuthor] = useState<Author | null>(null);
-  const [relatedBooks, setRelatedBooks] = useState<Book[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [borrowDuration, setBorrowDuration] = useState(7);
-  const { addItem } = useCartStore();
-  const { isDarkMode } = useUIStore();
-  const { user } = useAuthStore();
+  const isMobile = useIsMobile(900);
+  const { addItem, items } = useCartStore();
 
-  useEffect(() => {
-    const fetchBookData = async () => {
-      if (!id) return;
-      setLoading(true);
-      try {
-        const bookSnap = await getDoc(doc(db, 'books', id));
-        if (bookSnap.exists()) {
-          const bookData = { id: bookSnap.id, ...bookSnap.data() } as Book;
-          setBook(bookData);
-
-          // Fetch Author
-          const authorSnap = await getDoc(doc(db, 'authors', bookData.authorId));
-          if (authorSnap.exists()) {
-            setAuthor({ id: authorSnap.id, ...authorSnap.data() } as Author);
-          }
-
-          // Fetch Related Books
-          const relatedQ = query(
-            collection(db, 'books'),
-            where('department', '==', bookData.department),
-            limit(4)
-          );
-          const relatedSnap = await getDocs(relatedQ);
-          setRelatedBooks(relatedSnap.docs.filter(d => d.id !== id).map(d => ({ id: d.id, ...d.data() } as Book)));
-
-          // Fetch Reviews
-          const reviewsQ = query(
-            collection(db, 'reviews'),
-            where('bookId', '==', id),
-            limit(5)
-          );
-          const reviewsSnap = await getDocs(reviewsQ);
-          setReviews(reviewsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Review)));
-        }
-      } catch (error) {
-        console.error("Error fetching book details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchBookData();
-  }, [id]);
-
-  if (loading) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-24 animate-pulse space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
-          <div className="aspect-[3/4] bg-white/10 rounded-3xl" />
-          <div className="space-y-8">
-            <div className="h-12 bg-white/10 rounded w-3/4" />
-            <div className="h-6 bg-white/10 rounded w-1/2" />
-            <div className="h-32 bg-white/10 rounded w-full" />
-            <div className="h-16 bg-white/10 rounded w-1/3" />
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const book = useMemo(() => books.find((b) => b.id === id), [id]);
+  const inCart = items.some((i) => i.id === book?.id);
 
   if (!book) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-24 text-center space-y-6">
-        <AlertCircle className="w-16 h-16 text-error mx-auto opacity-20" />
-        <h2 className="text-3xl font-display font-bold">Book not found</h2>
-        <button onClick={() => navigate('/bookshelf')} className="bg-primary text-white px-8 py-3 rounded-xl font-bold">
-          Back to Bookshelf
-        </button>
+      <div
+        style={{
+          minHeight: '70vh',
+          display: 'grid',
+          placeItems: 'center',
+          textAlign: 'center',
+          gap: 12,
+          color: 'var(--text-primary)',
+          padding: '32px 16px',
+        }}
+      >
+        <div style={{ fontSize: 48 }}>??</div>
+        <h1 style={{ fontSize: 24, fontWeight: 800 }}>Book not found</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Try browsing the bookstore or pick a different title.</p>
+        <div style={{ display: 'flex', gap: 10, marginTop: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <button
+            onClick={() => navigate(-1)}
+            style={{
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid var(--border-default)',
+              color: 'var(--text-primary)',
+              padding: '10px 14px',
+              borderRadius: 10,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            Go Back
+          </button>
+          <Link
+            to="/books"
+            style={{
+              background: '#f59e0b',
+              color: '#0f172a',
+              padding: '10px 16px',
+              borderRadius: 10,
+              fontWeight: 800,
+              textDecoration: 'none',
+            }}
+          >
+            Browse Bookstore ?
+          </Link>
+        </div>
       </div>
     );
   }
 
-  const borrowPrices: Record<number, number | undefined> = {
-    1: book.borrowPrice1Day,
-    3: book.borrowPrice3Days,
-    7: book.borrowPrice7Days,
-    14: book.borrowPrice14Days,
-    30: book.borrowPrice30Days,
-  };
+  const metaItems: { label: string; value: string | number | undefined }[] = [
+    { label: 'Course code', value: book.courseCode },
+    { label: 'Department', value: book.department },
+    { label: 'Faculty', value: book.faculty },
+    { label: 'Edition', value: book.edition },
+    { label: 'Pages', value: book.pages },
+  ];
+
+  const related = books
+    .filter((b) => b.category === book.category && b.id !== book.id)
+    .slice(0, 4);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-24">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center space-x-2 text-xs font-bold uppercase tracking-widest opacity-60">
-        <Link to="/bookshelf" className="hover:text-primary transition-colors">Bookshelf</Link>
-        <ChevronRight className="w-3 h-3" />
-        <span className="text-primary">{book.faculty}</span>
-        <ChevronRight className="w-3 h-3" />
-        <span className="truncate max-w-[200px]">{book.title}</span>
-      </nav>
+    <div style={{ background: 'var(--bg-primary)', color: 'var(--text-primary)', minHeight: '100vh' }}>
+      <div className="container" style={{ padding: isMobile ? '20px 0 40px' : '32px 0 48px' }}>
+        <button
+          onClick={() => navigate(-1)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            color: 'var(--text-secondary)',
+            border: '1px solid var(--border-default)',
+            background: 'rgba(255,255,255,0.04)',
+            padding: '8px 12px',
+            borderRadius: 10,
+            cursor: 'pointer',
+            marginBottom: 18,
+          }}
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
 
-      {/* Main Detail Grid */}
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-16">
-        {/* Left: Cover & Actions */}
-        <div className="lg:col-span-5 space-y-8">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative aspect-[3/4] rounded-3xl overflow-hidden shadow-2xl border-4 border-white"
-          >
-            <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            <div className="absolute top-6 left-6 bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl shadow-lg border border-border flex items-center space-x-2">
-              <span className="text-[10px] font-mono font-bold text-primary">{book.uniqueBookId}</span>
-            </div>
-          </motion.div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <button className="flex items-center justify-center space-x-2 p-4 bg-white border border-border rounded-2xl font-bold hover:border-secondary transition-all shadow-sm">
-              <Share2 className="w-5 h-5 text-secondary" />
-              <span>Share</span>
-            </button>
-            <button className="flex items-center justify-center space-x-2 p-4 bg-white border border-border rounded-2xl font-bold hover:border-error transition-all shadow-sm">
-              <Heart className="w-5 h-5 text-error" />
-              <span>Wishlist</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Right: Info */}
-        <div className="lg:col-span-7 space-y-10">
-          <div className="space-y-4">
-            <div className="flex flex-wrap gap-2">
-              <span className="bg-primary/10 text-primary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{book.type}</span>
-              <span className="bg-secondary/10 text-secondary text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{book.courseCode}</span>
-              <span className="bg-accent/10 text-accent text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-widest">{book.level} Level</span>
-            </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold leading-tight">{book.title}</h1>
-            {book.subtitle && <p className="text-xl opacity-60 italic">{book.subtitle}</p>}
-            
-            <div className="flex items-center space-x-4 pt-2">
-              <div className="flex items-center space-x-1 text-secondary">
-                {[1, 2, 3, 4, 5].map(s => (
-                  <Star key={s} className={cn("w-5 h-5", s <= Math.round(book.averageRating) ? "fill-current" : "opacity-20")} />
-                ))}
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: isMobile ? '1fr' : '1.1fr 0.9fr',
+            gap: 24,
+          }}
+        >
+          {/* Left column */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 18,
+                padding: isMobile ? 16 : 20,
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : '280px 1fr',
+                gap: 16,
+                alignItems: 'center',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <BookCover
+                  courseCode={book.courseCode}
+                  title={book.title}
+                  color={book.coverColor}
+                  size={isMobile ? 'md' : 'lg'}
+                />
               </div>
-              <span className="text-sm font-bold opacity-60">({book.totalReviews} Reviews)</span>
-            </div>
-          </div>
 
-          <div className="flex items-center space-x-6 p-6 bg-white border border-border rounded-2xl shadow-sm">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary">
-              <img src={author?.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(author?.name || '')}`} alt={author?.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-            </div>
-            <div>
-              <p className="text-xs opacity-60 font-bold uppercase tracking-widest">Written By</p>
-              <Link to={`/author/${author?.id}`} className="text-xl font-display font-bold hover:text-primary transition-colors">{author?.name}</Link>
-              <p className="text-xs opacity-60">{author?.specialization} â€¢ {author?.institution}</p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <h3 className="text-lg font-display font-bold border-b border-border pb-2">Description</h3>
-            <p className="leading-relaxed opacity-80">{book.description}</p>
-          </div>
-
-          {/* Purchase Options */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Buy Physical */}
-            <div className="p-8 bg-primary text-white rounded-3xl space-y-6 shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="space-y-2">
-                <p className="text-xs font-bold uppercase tracking-widest opacity-60">Purchase Textbook</p>
-                <div className="flex items-end space-x-2">
-                  <span className="text-4xl font-display font-bold">{formatCurrency(book.price)}</span>
-                  <span className="text-sm opacity-60 mb-1">/ Physical Copy</span>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-2 text-xs">
-                  <CheckCircle2 className="w-4 h-4 text-secondary" />
-                  <span>Official UNN Departmental Copy</span>
-                </div>
-                <div className="flex items-center space-x-2 text-xs">
-                  <CheckCircle2 className="w-4 h-4 text-secondary" />
-                  <span>Pick up from {book.department} store</span>
-                </div>
-              </div>
-              <button 
-                onClick={() => addItem(book)}
-                disabled={book.stock <= 0}
-                className="w-full bg-secondary hover:bg-secondary/90 text-white py-4 rounded-xl font-bold flex items-center justify-center space-x-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ShoppingCart className="w-5 h-5" />
-                <span>{book.stock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
-              </button>
-            </div>
-
-            {/* Borrow Digital */}
-            {book.isELibraryAvailable && (
-              <div className="p-8 bg-white border-2 border-primary rounded-3xl space-y-6 shadow-xl">
-                <div className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-widest text-primary">E-Library Borrowing</p>
-                  <div className="flex items-end space-x-2">
-                    <span className="text-4xl font-display font-bold text-primary">{formatCurrency(borrowPrices[borrowDuration] || 0)}</span>
-                    <span className="text-sm opacity-60 mb-1 text-text-dark">/ {borrowDuration} Days</span>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  <p className="text-xs font-bold opacity-60">Select Duration:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {[1, 3, 7, 14, 30].map(d => (
-                      <button 
-                        key={d}
-                        onClick={() => setBorrowDuration(d)}
-                        className={cn(
-                          "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                          borrowDuration === d ? "bg-primary text-white" : "bg-bg-cream hover:bg-primary/10"
-                        )}
-                      >
-                        {d}d
-                      </button>
-                    ))}
-                  </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <span className="badge badge-amber">{book.courseCode}</span>
+                  <span className="badge" style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-default)', color: 'var(--text-secondary)' }}>
+                    {book.category}
+                  </span>
+                  {book.inStock ? (
+                    <span className="badge badge-success">In stock</span>
+                  ) : (
+                    <span className="badge badge-error">Out of stock</span>
+                  )}
                 </div>
 
-                <button className="w-full bg-primary hover:bg-primary-light text-white py-4 rounded-xl font-bold flex items-center justify-center space-x-2 transition-all shadow-lg">
-                  <Library className="w-5 h-5" />
-                  <span>Borrow Digital</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
+                <h1 style={{ fontSize: isMobile ? 22 : 28, fontWeight: 800, lineHeight: 1.25 }}>
+                  {book.title}
+                </h1>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6 }}>
+                  {book.description}
+                </p>
 
-      {/* Book Details Table */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-16 pt-12 border-t border-border">
-        <div className="space-y-6">
-          <h3 className="text-2xl font-display font-bold">Book Specifications</h3>
-          <div className="grid grid-cols-2 gap-y-4 text-sm">
-            <p className="opacity-60">ISBN</p>
-            <p className="font-bold">{book.isbn || 'N/A'}</p>
-            <p className="opacity-60">Edition</p>
-            <p className="font-bold">{book.edition || '1st Edition'}</p>
-            <p className="opacity-60">Published Year</p>
-            <p className="font-bold">{book.publishedYear || 'N/A'}</p>
-            <p className="opacity-60">Total Pages</p>
-            <p className="font-bold">{book.totalPages || 'N/A'}</p>
-            <p className="opacity-60">Language</p>
-            <p className="font-bold">English</p>
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-2xl font-display font-bold">Preview Pages</h3>
-          <div className="aspect-video bg-bg-dark rounded-3xl flex items-center justify-center relative group overflow-hidden">
-            <img src={book.coverImage} alt="Preview" className="w-full h-full object-cover opacity-30 blur-sm" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 text-white">
-              <BookOpen className="w-12 h-12 text-secondary" />
-              <p className="font-bold">First 10 Pages Available</p>
-              <button className="bg-white text-primary px-6 py-2 rounded-full text-sm font-bold hover:bg-secondary hover:text-white transition-all">
-                Open Preview Flipbook
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Reviews */}
-      <section className="space-y-12">
-        <div className="flex justify-between items-end">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-display font-bold">Student Reviews</h2>
-            <p className="opacity-60">What your colleagues are saying about this material.</p>
-          </div>
-          <button className="text-primary font-bold hover:text-secondary transition-colors">Write a Review</button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {reviews.length > 0 ? reviews.map(review => (
-            <div key={review.id} className="p-8 bg-white border border-border rounded-3xl space-y-4 shadow-sm">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {review.userId.slice(0, 2).toUpperCase()}
+                <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Author</p>
+                    <p style={{ fontWeight: 700 }}>{book.author}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-bold">Verified Student</p>
-                    <p className="text-[10px] opacity-60 uppercase">{formatDate(review.createdAt)}</p>
+                    <p style={{ color: 'var(--text-muted)', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>Edition</p>
+                    <p style={{ fontWeight: 700 }}>{book.edition}</p>
                   </div>
                 </div>
-                <div className="flex items-center space-x-1 text-secondary">
-                  {[1, 2, 3, 4, 5].map(s => <Star key={s} className={cn("w-3 h-3", s <= review.rating ? "fill-current" : "opacity-20")} />)}
+              </div>
+            </div>
+
+            <div
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 18,
+                padding: 20,
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(3, minmax(0,1fr))',
+                gap: 12,
+              }}
+            >
+              {metaItems.map((m) => (
+                <div key={m.label} style={{ padding: 12, border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
+                  <p style={{ color: 'var(--text-muted)', fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 6 }}>{m.label}</p>
+                  <p style={{ fontWeight: 700 }}>{m.value}</p>
+                </div>
+              ))}
+            </div>
+
+            <div
+              style={{
+                background: 'var(--bg-secondary)',
+                border: '1px solid var(--border-subtle)',
+                borderRadius: 18,
+                padding: 20,
+                display: 'grid',
+                gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, minmax(0,1fr))',
+                gap: 16,
+              }}
+            >
+              <InfoCard
+                icon={<Truck size={16} color="#f59e0b" />}
+                title="Delivery"
+                body="Hostel / Department drop-off. Same-day on campus; next-day off-campus within Nsukka."
+              />
+              <InfoCard
+                icon={<Clock3 size={16} color="#f59e0b" />}
+                title="Returns"
+                body="48-hour quality check window. Report wrong edition or damage for replacement."
+              />
+            </div>
+          </div>
+
+          {/* Right column sticky card */}
+          <div
+            style={{
+              position: isMobile ? 'static' : 'sticky',
+              top: isMobile ? undefined : 88,
+              alignSelf: 'start',
+            }}
+          >
+            <div
+              style={{
+                background: '#1e293b',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 18,
+                padding: 20,
+                boxShadow: 'var(--shadow-card)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 14,
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Price</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ color: '#f59e0b', fontSize: 26, fontWeight: 800 }}>{currency.format(book.price)}</span>
+                  <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>/ copy</span>
                 </div>
               </div>
-              <p className="text-sm opacity-80 leading-relaxed italic">"{review.comment}"</p>
-            </div>
-          )) : (
-            <div className="col-span-2 text-center py-12 opacity-40">
-              <p>No reviews yet for this book.</p>
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* Related Books */}
-      <section className="space-y-12">
-        <h2 className="text-3xl font-display font-bold">Related Materials</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {relatedBooks.map(b => (
-            <Link key={b.id} to={`/book/${b.id}`} className="group space-y-4">
-              <div className="aspect-[3/4] rounded-2xl overflow-hidden shadow-lg border border-border">
-                <img src={b.coverImage} alt={b.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" referrerPolicy="no-referrer" />
+              <button
+                onClick={() => addItem(book as any)}
+                disabled={!book.inStock}
+                style={{
+                  background: book.inStock ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' : 'rgba(255,255,255,0.05)',
+                  color: book.inStock ? '#0f172a' : '#64748b',
+                  border: 'none',
+                  padding: '14px',
+                  borderRadius: 12,
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: book.inStock ? 'pointer' : 'not-allowed',
+                  boxShadow: book.inStock ? '0 12px 28px rgba(245,158,11,0.25)' : 'none',
+                  transition: 'transform 0.15s, opacity 0.2s',
+                }}
+              >
+                {book.inStock ? (inCart ? 'In cart ?' : 'Add to cart') : 'Out of stock'}
+              </button>
+
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                ?? We’ll confirm availability via WhatsApp and arrange payment (transfer or COD).
               </div>
-              <div className="space-y-1">
-                <h4 className="font-bold text-sm line-clamp-1">{b.title}</h4>
-                <p className="text-xs opacity-60">{formatCurrency(b.price)}</p>
+
+              <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: 12, display: 'grid', gap: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Course</span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{book.courseCode}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Faculty</span>
+                  <span style={{ color: '#fcd34d', fontWeight: 700 }}>{book.faculty}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Category</span>
+                  <span style={{ color: '#f59e0b', fontWeight: 700 }}>{book.category}</span>
+                </div>
               </div>
-            </Link>
-          ))}
+            </div>
+          </div>
         </div>
-      </section>
+
+        {/* Related */}
+        {related.length > 0 && (
+          <div style={{ marginTop: 32 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <Sparkles size={16} color="#f59e0b" />
+                <h3 style={{ fontSize: 18, fontWeight: 800 }}>Related books</h3>
+              </div>
+              <Link to="/books" style={{ color: '#f59e0b', fontWeight: 700 }}>Browse all ?</Link>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: isMobile ? 'repeat(2, minmax(0,1fr))' : 'repeat(4, minmax(0,1fr))',
+                gap: 12,
+              }}
+            >
+              {related.map((b) => (
+                <Link
+                  key={b.id}
+                  to={`/books/${b.id}`}
+                  style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-subtle)',
+                    borderRadius: 14,
+                    padding: 12,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 10,
+                    textDecoration: 'none',
+                    color: 'inherit',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'center' }}>
+                    <BookCover
+                      courseCode={b.courseCode}
+                      title={b.title}
+                      color={b.coverColor}
+                      size="sm"
+                    />
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 13, lineHeight: 1.35 }}>{b.title}</div>
+                  <div style={{ color: '#f59e0b', fontWeight: 800, fontSize: 12 }}>{currency.format(b.price)}</div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function InfoCard({ icon, title, body }: { icon: React.ReactNode; title: string; body: string }) {
+  return (
+    <div style={{ padding: 16, background: 'var(--bg-tertiary)', borderRadius: 14, border: '1px solid var(--border-default)', display: 'flex', gap: 12 }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.12)', display: 'grid', placeItems: 'center' }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontWeight: 700 }}>{title}</div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.5 }}>{body}</p>
+      </div>
     </div>
   );
 }
