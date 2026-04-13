@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Source+Serif+4:wght@400;500;600&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Playfair Display", serif;
+  --font-body: "Source Serif 4", serif;
+  --font-ui: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  --color-primary: #1B4332;
+  --color-primary-light: #2D6A4F;
+  --color-secondary: #D4A017;
+  --color-accent: #A0522D;
+  --color-bg-cream: #FAF6F0;
+  --color-bg-dark: #0D2418;
+  --color-text-dark: #1A1A2E;
+  --color-text-muted: #6B7280;
+  --color-card-bg: #FFFFFF;
+  --color-border: #E8DDD0;
+  --color-success: #059669;
+  --color-error: #DC2626;
+  --color-stamp-red: #8B0000;
+}
+
+@layer base {
+  body {
+    @apply bg-bg-cream text-text-dark font-body;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+}
+
+.shelf-view {
+  perspective: 1000px;
+}
+
+.book-spine {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.book-spine:hover {
+  transform: rotateY(-20deg) scale(1.05);
+}
+
+.stamp-animation {
+  animation: stamp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes stamp {
+  0% { transform: scale(2); opacity: 0; filter: blur(10px); }
+  100% { transform: scale(1); opacity: 1; filter: blur(0); }
+}
+
+.watermark {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-45deg);
+  font-size: 8rem;
+  opacity: 0.05;
+  pointer-events: none;
+  z-index: 9999;
+  white-space: nowrap;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  body {
+    background: white !important;
+  }
+}
+

@@ -1,0 +1,5 @@
+{
+  "name": "UNN BookHub",
+  "description": "The official online bookstore and e-library for the University of Nigeria, Nsukka (UNN). Browse textbooks, borrow digital resources, and manage academic materials.",
+  "requestFramePermissions": ["camera", "geolocation"]
+}
