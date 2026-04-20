@@ -38,6 +38,11 @@ const ComplaintDetailPage = lazy(() => import("./pages/ComplaintDetailPage"));
 function AppContent() {
   const location = useLocation();
   const { setUser, setUserProfile, setLoading } = useAuthStore();
+
+  // Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
   const isLibraryRoute =
     location.pathname.startsWith("/library") ||
     location.pathname.startsWith("/reader");
