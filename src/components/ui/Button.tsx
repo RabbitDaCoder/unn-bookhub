@@ -1,96 +1,58 @@
-import React from 'react';
+import { type ReactNode } from "react";
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
-type Size = 'sm' | 'md' | 'lg';
-
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  size?: Size;
-  fullWidth?: boolean;
+interface ButtonProps {
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "outline" | "ghost" | "danger";
+  size?: "sm" | "md" | "lg";
+  className?: string;
+  disabled?: boolean;
   loading?: boolean;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  type?: "button" | "submit" | "reset";
 }
 
 export function Button({
   children,
-  variant = 'primary',
-  size = 'md',
-  fullWidth,
-  loading,
-  style,
-  disabled,
-  ...rest
+  variant = "primary",
+  size = "md",
+  className = "",
+  disabled = false,
+  loading = false,
+  onClick,
+  type = "button",
 }: ButtonProps) {
-  const colors: Record<Variant, { bg: string; color: string; border?: string; hover?: string }> = {
-    primary: {
-      bg: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
-      color: '#0f172a',
-      hover: 'linear-gradient(135deg, var(--amber-500), var(--amber-600))',
-    },
-    secondary: {
-      bg: 'var(--bg-elevated)',
-      color: 'var(--text-1)',
-      border: '1px solid var(--border-default)',
-      hover: 'var(--bg-card-hover)',
-    },
-    ghost: {
-      bg: 'transparent',
-      color: 'var(--text-1)',
-      hover: 'var(--layer-05)',
-      border: '1px solid var(--border-subtle)',
-    },
-    danger: {
-      bg: 'rgba(248,113,113,0.14)',
-      color: 'var(--error)',
-      border: '1px solid rgba(248,113,113,0.4)',
-      hover: 'rgba(248,113,113,0.22)',
-    },
+  const base =
+    "inline-flex items-center justify-center gap-2 font-bold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+
+  const variants = {
+    primary:
+      "bg-amber-500 text-ink-900 hover:bg-amber-600 shadow-amber hover:-translate-y-0.5",
+    secondary:
+      "bg-ink-600 text-white border border-white/10 hover:border-white/20 hover:bg-ink-500",
+    outline:
+      "border border-white/20 text-white hover:border-amber-500/50 hover:text-amber-400",
+    ghost: "text-white/60 hover:text-white hover:bg-white/[0.06]",
+    danger:
+      "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20",
   };
 
-  const sizes: Record<Size, { py: number; px: number; fs: number; rd: string }> = {
-    sm: { py: 8, px: 12, fs: 13, rd: '10px' },
-    md: { py: 12, px: 14, fs: 14, rd: '12px' },
-    lg: { py: 14, px: 16, fs: 15, rd: '12px' },
-  };
-
-  const c = colors[variant];
-  const s = sizes[size];
-
-  const base: React.CSSProperties = {
-    background: c.bg,
-    color: c.color,
-    border: c.border,
-    padding: `${s.py}px ${s.px}px`,
-    borderRadius: s.rd,
-    fontWeight: 700,
-    fontSize: s.fs,
-    width: fullWidth ? '100%' : undefined,
-    cursor: disabled || loading ? 'not-allowed' : 'pointer',
-    opacity: disabled || loading ? 0.6 : 1,
-    transition: 'background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease',
-    boxShadow: variant === 'primary' ? '0 10px 30px rgba(245,158,11,0.25)' : undefined,
+  const sizes = {
+    sm: "px-3 py-1.5 text-xs",
+    md: "px-5 py-2.5 text-sm",
+    lg: "px-7 py-3.5 text-[15px]",
   };
 
   return (
     <button
-      {...rest}
+      type={type}
+      onClick={onClick}
       disabled={disabled || loading}
-      style={{ ...base, ...style }}
-      onMouseEnter={(e) => {
-        if (c.hover) e.currentTarget.style.background = c.hover;
-      }}
-      onMouseLeave={(e) => {
-        if (c.hover) e.currentTarget.style.background = c.bg;
-      }}
-      onMouseDown={(e) => {
-        e.currentTarget.style.transform = 'translateY(1px)';
-      }}
-      onMouseUp={(e) => {
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
+      className={`${base} ${variants[variant]} ${sizes[size]} ${className}`}
     >
-      {loading ? '···' : children}
+      {loading && (
+        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+      )}
+      {children}
     </button>
   );
 }
-
-export default Button;

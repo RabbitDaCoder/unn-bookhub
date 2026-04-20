@@ -1,15 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { User, Book, CartItem } from "../types";
-import type { User as FirebaseUser } from "firebase/auth";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { musicTracks, type MusicTrack } from "../data/musicTracks";
 
 type UserProfile = User;
 
 interface AuthState {
-  user: FirebaseUser | null;
+  user: SupabaseUser | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  setUser: (user: FirebaseUser | null) => void;
+  setUser: (user: SupabaseUser | null) => void;
   setUserProfile: (profile: UserProfile | null) => void;
   setLoading: (loading: boolean) => void;
 }
@@ -41,7 +42,6 @@ export const useCartStore = create<CartStore>()(
       addItem: (book) => {
         const items = get().items;
         const existing = items.find((item) => item.id === book.id);
-
         const updatedItems = existing
           ? items.map((item) =>
               item.id === book.id
@@ -49,7 +49,6 @@ export const useCartStore = create<CartStore>()(
                 : item,
             )
           : [...items, { ...book, quantity: 1 }];
-
         const totalAmount = updatedItems.reduce(
           (acc, item) => acc + item.price * item.quantity,
           0,
@@ -58,7 +57,6 @@ export const useCartStore = create<CartStore>()(
           (acc, item) => acc + item.quantity,
           0,
         );
-
         set({
           items: updatedItems,
           totalAmount,
@@ -136,8 +134,71 @@ export const useUIStore = create<UIStore>()(
           isDarkMode: state.theme !== "dark",
         })),
     }),
+    { name: "unn-bookhub-ui" },
+  ),
+);
+
+interface MusicState {
+  tracks: MusicTrack[];
+  currentTrackIndex: number;
+  isPlaying: boolean;
+  volume: number;
+  progress: number;
+  isMuted: boolean;
+  showPlayer: boolean;
+  play: () => void;
+  pause: () => void;
+  toggle: () => void;
+  next: () => void;
+  prev: () => void;
+  selectTrack: (index: number) => void;
+  setVolume: (v: number) => void;
+  setProgress: (p: number) => void;
+  setShowPlayer: (show: boolean) => void;
+}
+
+export const useMusicStore = create<MusicState>()(
+  persist(
+    (set, get) => ({
+      tracks: musicTracks,
+      currentTrackIndex: 0,
+      isPlaying: false,
+      volume: 50,
+      progress: 0,
+      isMuted: false,
+      showPlayer: false,
+      play: () => set({ isPlaying: true }),
+      pause: () => set({ isPlaying: false }),
+      toggle: () => set((s) => ({ isPlaying: !s.isPlaying })),
+      next: () =>
+        set((s) => ({
+          currentTrackIndex: (s.currentTrackIndex + 1) % s.tracks.length,
+          progress: 0,
+        })),
+      prev: () =>
+        set((s) => ({
+          currentTrackIndex:
+            s.currentTrackIndex === 0
+              ? s.tracks.length - 1
+              : s.currentTrackIndex - 1,
+          progress: 0,
+        })),
+      selectTrack: (index) =>
+        set({ currentTrackIndex: index, progress: 0, isPlaying: true }),
+      setVolume: (v) => set({ volume: v, isMuted: v === 0 }),
+      setProgress: (p) => set({ progress: p }),
+      setShowPlayer: (show) => set({ showPlayer: show }),
+    }),
     {
-      name: "unn-bookhub-ui",
+      name: "unn-bookhub-music",
+      partialize: (state) => ({
+        currentTrackIndex: state.currentTrackIndex,
+        volume: state.volume,
+      }),
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...persistedState,
+      }),
     },
   ),
 );

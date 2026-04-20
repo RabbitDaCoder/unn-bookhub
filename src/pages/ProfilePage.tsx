@@ -1,148 +1,180 @@
-import React, { useState } from 'react';
-import { useAuthStore } from '../store/useStore';
-import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
-import Input from '../components/ui/Input';
-import { User, BookOpen, GraduationCap } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useAuthStore } from "../store/useStore";
+import { updateUserProfile, fetchUserProfile } from "../supabase";
+import { useToast } from "../context/ToastContext";
+import { FACULTIES, DEPARTMENTS, LEVELS } from "../constants";
 
 export default function ProfilePage() {
-  const userProfile = useAuthStore((s) => s.userProfile);
-  const initials = (userProfile?.fullName || 'Student')
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+  const { user, userProfile, setUserProfile } = useAuthStore();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({
+    fullName: "",
+    phone: "",
+    faculty: "",
+    department: "",
+    level: "",
+  });
 
-  const [saved, setSaved] = useState(false);
+  useEffect(() => {
+    if (userProfile) {
+      setForm({
+        fullName: userProfile.fullName || "",
+        phone: userProfile.phone || "",
+        faculty: userProfile.faculty || "",
+        department: userProfile.department || "",
+        level: userProfile.level || "",
+      });
+    }
+  }, [userProfile]);
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 1200);
+  const departments = form.faculty ? DEPARTMENTS[form.faculty] || [] : [];
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) return;
+    setLoading(true);
+    try {
+      await updateUserProfile(user.id, form);
+      const updated = await fetchUserProfile(user.id);
+      if (updated) setUserProfile(updated);
+      toast("Profile updated!", "success");
+    } catch (err: any) {
+      toast(err.message || "Failed to update profile", "error");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const update = (k: string, v: string) => setForm((p) => ({ ...p, [k]: v }));
+
   return (
-    <div style={{ background: 'var(--bg-base)', color: 'var(--text-1)', minHeight: '100vh' }}>
-      <div className="container" style={{ padding: '28px 0 48px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
-        {/* Identity card */}
-        <div
-          style={{
-            position: 'sticky',
-            top: 84,
-            background: 'var(--bg-card)',
-            border: '1px solid var(--border-subtle)',
-            borderRadius: 'var(--r-2xl)',
-            padding: '32px 24px',
-            textAlign: 'center',
-            boxShadow: 'var(--shadow-card)',
-            alignSelf: 'start',
-          }}
+    <div className="min-h-screen bg-ink-900">
+      <section className="bg-ink-800 border-b border-white/[0.06] py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <h1 className="text-3xl font-extrabold text-white mb-1">
+            My Profile
+          </h1>
+          <p className="text-white/40 text-sm">
+            Manage your account information
+          </p>
+        </div>
+      </section>
+
+      <div className="max-w-2xl mx-auto px-6 lg:px-12 py-10">
+        {/* Avatar + info */}
+        <div className="flex items-center gap-5 mb-8">
+          <div className="w-16 h-16 rounded-full bg-amber-500 flex items-center justify-center text-ink-900 text-2xl font-black flex-shrink-0">
+            {user?.user_metadata?.full_name?.[0]?.toUpperCase() || "U"}
+          </div>
+          <div>
+            <p className="text-white text-lg font-bold">
+              {user?.user_metadata?.full_name || "Student"}
+            </p>
+            <p className="text-white/40 text-sm">{user?.email}</p>
+            {userProfile?.role && (
+              <span className="text-amber-500 text-xs font-bold uppercase tracking-wider">
+                {userProfile.role}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <form
+          onSubmit={handleSave}
+          className="bg-ink-700 border border-white/[0.06] rounded-2xl p-7"
         >
-          {userProfile?.photoURL ? (
-            <img
-              src={userProfile.photoURL}
-              alt={userProfile.fullName}
-              style={{ width: 88, height: 88, borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--amber-400)', margin: '0 auto' }}
-            />
-          ) : (
-            <div
-              style={{
-                width: 88,
-                height: 88,
-                borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
-                color: '#0f172a',
-                fontSize: 28,
-                fontWeight: 800,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto',
-              }}
-            >
-              {initials}
+          <h2 className="text-lg font-bold text-white mb-6">Edit Profile</h2>
+          <div className="grid sm:grid-cols-2 gap-4 mb-6">
+            <div className="sm:col-span-2">
+              <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={form.fullName}
+                onChange={(e) => update("fullName", e.target.value)}
+                className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
+              />
             </div>
-          )}
-
-          <div style={{ fontSize: 20, fontWeight: 800, marginTop: 16 }}>{userProfile?.fullName || 'Student Name'}</div>
-          <div style={{ color: 'var(--text-3)', fontSize: 13, marginTop: 4 }}>{userProfile?.email || 'you@unn.edu.ng'}</div>
-          <div className="badge badge-amber" style={{ marginTop: 12 }}>
-            {userProfile?.role || 'Student'}
+            <div className="sm:col-span-2">
+              <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+                Phone
+              </label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => update("phone", e.target.value)}
+                placeholder="+234..."
+                className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
+              />
+            </div>
+            <div>
+              <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+                Faculty
+              </label>
+              <select
+                value={form.faculty}
+                onChange={(e) => {
+                  update("faculty", e.target.value);
+                  update("department", "");
+                }}
+                className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+              >
+                <option value="">Select faculty</option>
+                {FACULTIES.map((f) => (
+                  <option key={f} value={f}>
+                    {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+                Department
+              </label>
+              <select
+                value={form.department}
+                onChange={(e) => update("department", e.target.value)}
+                disabled={!form.faculty}
+                className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer disabled:opacity-50"
+              >
+                <option value="">Select department</option>
+                {departments.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+                Level
+              </label>
+              <select
+                value={form.level}
+                onChange={(e) => update("level", e.target.value)}
+                className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+              >
+                <option value="">Select level</option>
+                {LEVELS.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--border-faint)', margin: '16px 0' }} />
-
-          <div style={{ display: 'grid', gap: 12 }}>
-            {[
-              { label: 'Orders', value: 3 },
-              { label: 'Books Ordered', value: 7 },
-              { label: 'Total Spent', value: '?24,500' },
-            ].map((s, idx) => (
-              <div key={s.label} style={{ display: 'grid', gap: 4, paddingBottom: idx < 2 ? 12 : 0, borderBottom: idx < 2 ? '1px solid var(--border-faint)' : undefined }}>
-                <span style={{ color: 'var(--text-3)', fontSize: 11 }}>{s.label}</span>
-                <span style={{ color: 'var(--text-1)', fontSize: 15, fontWeight: 700 }}>{s.value}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ borderTop: '1px solid var(--border-faint)', margin: '16px 0' }} />
-
-          <Button
-            variant="danger"
-            fullWidth
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('logout-click'));
-            }}
-            style={{ boxShadow: '0 0 0 0 rgba(0,0,0,0)' }}
+          <button
+            type="submit"
+            disabled={loading}
+            className="px-7 py-3 rounded-full bg-amber-500 text-ink-900 font-bold text-sm shadow-amber hover:bg-amber-600 transition-all duration-200 disabled:opacity-60"
           >
-            Sign Out
-          </Button>
-        </div>
-
-        {/* Form side */}
-        <div style={{ display: 'grid', gap: 20 }}>
-          <Card padding={20}>
-            <Header icon={<User size={16} color="var(--text-amber)" />} title="Personal Information" />
-            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))' }}>
-              <Input label="Full Name" defaultValue={userProfile?.fullName || ''} requiredMark />
-              <Input label="Phone" defaultValue={userProfile?.phone || ''} />
-              <Input label="Email" defaultValue={userProfile?.email || ''} />
-              <Input label="Address" defaultValue={userProfile?.address || ''} style={{ gridColumn: '1/-1' }} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-              <Button variant={saved ? 'secondary' : 'primary'} onClick={handleSave}>
-                {saved ? 'Saved ?' : 'Save changes'}
-              </Button>
-            </div>
-          </Card>
-
-          <Card padding={20}>
-            <Header icon={<GraduationCap size={16} color="var(--text-amber)" />} title="Academic Details" />
-            <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fit, minmax(240px,1fr))' }}>
-              <Input label="Faculty" defaultValue={userProfile?.faculty || ''} />
-              <Input label="Department" defaultValue={userProfile?.department || ''} />
-              <Input label="Level" defaultValue={userProfile?.level || ''} />
-              <Input label="Matric No" defaultValue={userProfile?.matricNo || ''} />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-              <Button variant={saved ? 'secondary' : 'primary'} onClick={handleSave}>
-                {saved ? 'Saved ?' : 'Save academic info'}
-              </Button>
-            </div>
-          </Card>
-        </div>
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
       </div>
-    </div>
-  );
-}
-
-function Header({ icon, title }: { icon: React.ReactNode; title: string }) {
-  return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, paddingBottom: 16, borderBottom: '1px solid var(--border-subtle)' }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(245,158,11,0.18)', display: 'grid', placeItems: 'center', color: 'var(--text-amber)' }}>
-        {icon}
-      </div>
-      <h4 style={{ margin: 0 }}>{title}</h4>
     </div>
   );
 }

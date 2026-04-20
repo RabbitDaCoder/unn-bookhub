@@ -1,271 +1,158 @@
-import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useCartStore } from '../store/useStore';
-import { BookCover } from '../components/ui/BookCover';
+import { Link } from "react-router-dom";
+import { useCartStore } from "../store/useStore";
+import { BookCover } from "../components/ui/BookCover";
 
-const format = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
-
-export default function Cart() {
+export default function CartPage() {
   const { items, removeItem, updateQty, clearCart } = useCartStore();
-  const navigate = useNavigate();
-  const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 900;
-
-  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const delivery = items.length ? 800 : 0;
+  const totalAmount = items.reduce((a, i) => a + i.price * i.quantity, 0);
 
   if (items.length === 0) {
     return (
-      <div
-        style={{
-          minHeight: '70vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          gap: 16,
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ fontSize: 64 }}>??</div>
-        <h1 style={{ color: '#f1f5f9', fontSize: 24, fontWeight: 800 }}>
-          Your cart is empty
-        </h1>
-        <p style={{ color: '#64748b' }}>Browse the bookstore to find your course books</p>
-        <Link
-          to="/books"
-          style={{
-            background: '#f59e0b',
-            color: '#0f172a',
-            padding: '12px 18px',
-            borderRadius: 12,
-            fontWeight: 700,
-            textDecoration: 'none',
-          }}
-        >
-          Browse Bookstore ?
-        </Link>
+      <div className="min-h-screen bg-ink-900 flex items-center justify-center px-6">
+        <div className="text-center">
+          <p className="text-6xl mb-4">🛒</p>
+          <h2 className="text-2xl font-extrabold text-white mb-2">
+            Your cart is empty
+          </h2>
+          <p className="text-white/40 mb-6">Add some books and come back!</p>
+          <Link
+            to="/books"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-amber-500 text-ink-900 font-bold shadow-amber hover:bg-amber-600 transition-all duration-200"
+          >
+            Browse Bookstore →
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="container" style={{ padding: '28px 0 48px', display: 'grid', gridTemplateColumns: '1fr', gap: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800 }}>Shopping Cart</h1>
-          <p style={{ color: '#64748b', fontSize: 13 }}>You have {items.length} item(s) in your cart.</p>
+    <div className="min-h-screen bg-ink-900">
+      <section className="bg-ink-800 border-b border-white/[0.06] py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <h1 className="text-3xl font-extrabold text-white mb-1">
+            Shopping Cart
+          </h1>
+          <p className="text-white/40 text-sm">
+            {items.length} item{items.length !== 1 ? "s" : ""} in your cart
+          </p>
         </div>
-        <button
-          onClick={clearCart}
-          style={{
-            background: 'transparent',
-            border: '1px solid rgba(248,113,113,0.3)',
-            color: '#f87171',
-            padding: '8px 12px',
-            borderRadius: 10,
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          Clear cart
-        </button>
-      </div>
+      </section>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: isNarrow ? '1fr' : '1.6fr 1fr',
-          gap: 20,
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {items.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                background: '#1e293b',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 14,
-                padding: 16,
-                display: 'flex',
-                gap: 16,
-                alignItems: 'center',
-              }}
-            >
-              <BookCover
-                courseCode={item.courseCode}
-                title={item.title}
-                color={item.coverColor}
-                size="sm"
-              />
-
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ color: '#f1f5f9', fontWeight: 700, fontSize: 15 }}>
-                    {item.title}
-                  </span>
-                  <span className="badge badge-amber">{item.courseCode}</span>
-                </div>
-                <div style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>{item.author}</div>
-              </div>
-
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
+        <div className="grid lg:grid-cols-[1fr_350px] gap-8">
+          {/* Items */}
+          <div className="flex flex-col gap-4">
+            {items.map((item) => (
               <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  border: '1px solid rgba(255,255,255,0.10)',
-                  borderRadius: 8,
-                  overflow: 'hidden',
-                }}
+                key={item.id}
+                className="bg-ink-700 border border-white/[0.06] rounded-2xl p-5 flex gap-5 items-start"
               >
-                <button
-                  onClick={() => updateQty(item.id, Math.max(1, item.quantity - 1))}
-                  style={qtyBtnStyle}
-                >
-                  -
-                </button>
-                <div
-                  style={{
-                    background: '#0f172a',
-                    color: '#f1f5f9',
-                    fontWeight: 700,
-                    fontSize: 14,
-                    padding: '0 16px',
-                    height: 32,
-                    display: 'flex',
-                    alignItems: 'center',
-                    minWidth: 44,
-                    textAlign: 'center',
-                    borderLeft: '1px solid rgba(255,255,255,0.08)',
-                    borderRight: '1px solid rgba(255,255,255,0.08)',
-                  }}
-                >
-                  {item.quantity}
+                <div className="flex-shrink-0">
+                  <BookCover
+                    courseCode={item.courseCode}
+                    title={item.title}
+                    color={item.coverColor}
+                    size="sm"
+                  />
                 </div>
-                <button
-                  onClick={() => updateQty(item.id, item.quantity + 1)}
-                  style={qtyBtnStyle}
-                >
-                  +
-                </button>
+                <div className="flex-1 min-w-0">
+                  <Link
+                    to={`/books/${item.id}`}
+                    className="text-white font-bold text-sm hover:text-amber-400 transition-colors line-clamp-2"
+                  >
+                    {item.title}
+                  </Link>
+                  <p className="text-white/40 text-xs mt-1">
+                    {item.courseCode} · {item.author}
+                  </p>
+                  <p className="text-amber-500 font-extrabold mt-2">
+                    ₦{item.price.toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-3">
+                  <button
+                    onClick={() => removeItem(item.id)}
+                    className="text-red-400/60 hover:text-red-400 text-xs font-bold transition-colors"
+                  >
+                    Remove
+                  </button>
+                  <div className="flex items-center gap-2 bg-ink-600 rounded-lg border border-white/10">
+                    <button
+                      onClick={() =>
+                        updateQty(item.id, Math.max(1, item.quantity - 1))
+                      }
+                      className="px-3 py-1.5 text-white/60 hover:text-white text-sm"
+                    >
+                      −
+                    </button>
+                    <span className="text-white text-sm font-bold min-w-[20px] text-center">
+                      {item.quantity}
+                    </span>
+                    <button
+                      onClick={() => updateQty(item.id, item.quantity + 1)}
+                      className="px-3 py-1.5 text-white/60 hover:text-white text-sm"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
               </div>
+            ))}
 
-              <div style={{ textAlign: 'right', minWidth: 90 }}>
-                <div style={{ color: '#f59e0b', fontWeight: 800, fontSize: 16 }}>
-                  {format.format(item.price * item.quantity)}
+            <button
+              onClick={clearCart}
+              className="text-red-400/60 hover:text-red-400 text-sm font-semibold transition-colors self-start mt-2"
+            >
+              🗑 Clear Cart
+            </button>
+          </div>
+
+          {/* Summary */}
+          <div className="lg:sticky lg:top-24 h-fit">
+            <div className="bg-ink-700 border border-white/[0.06] rounded-2xl p-6">
+              <h3 className="text-white font-bold text-lg mb-5">
+                Order Summary
+              </h3>
+              <div className="flex flex-col gap-3 mb-5">
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/50">
+                    Subtotal ({items.length} items)
+                  </span>
+                  <span className="text-white font-semibold">
+                    ₦{totalAmount.toLocaleString()}
+                  </span>
                 </div>
-                <button
-                  onClick={() => removeItem(item.id)}
-                  style={{
-                    marginTop: 6,
-                    color: '#64748b',
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = '#f87171')}
-                  onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
-                >
-                  Remove
-                </button>
+                <div className="flex justify-between text-sm">
+                  <span className="text-white/50">Delivery</span>
+                  <span className="text-green-400 font-semibold">Free</span>
+                </div>
+                <div className="border-t border-white/[0.06] pt-3 flex justify-between">
+                  <span className="text-white font-bold">Total</span>
+                  <span className="text-amber-500 text-xl font-extrabold">
+                    ₦{totalAmount.toLocaleString()}
+                  </span>
+                </div>
               </div>
+              <Link
+                to="/checkout"
+                className="block w-full py-3.5 rounded-xl bg-amber-500 text-ink-900 font-extrabold text-sm text-center shadow-amber hover:bg-amber-600 transition-all duration-200"
+              >
+                Proceed to Checkout →
+              </Link>
+              <Link
+                to="/books"
+                className="block w-full py-3 text-center text-white/50 text-sm font-semibold hover:text-white mt-3 transition-colors"
+              >
+                ← Continue Shopping
+              </Link>
             </div>
-          ))}
-        </div>
-
-        <div
-          style={{
-            background: '#1e293b',
-            border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 16,
-            padding: 24,
-            position: isNarrow ? 'static' : 'sticky',
-            top: 80,
-            height: 'fit-content',
-          }}
-        >
-          <h3 style={{ color: '#f1f5f9', fontSize: 18, fontWeight: 700 }}>Order Summary</h3>
-          <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: 12 }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', color: '#94a3b8', fontSize: 14 }}>
-            <span>Subtotal</span>
-            <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{format.format(subtotal)}</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', color: '#94a3b8', fontSize: 14 }}>
-            <span>Delivery</span>
-            <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{format.format(delivery)}</span>
-          </div>
-          <div
-            style={{
-              borderTop: '2px solid rgba(255,255,255,0.1)',
-              paddingTop: 14,
-              marginTop: 4,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <span style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>Total</span>
-            <span style={{ color: '#f59e0b', fontSize: 22, fontWeight: 800 }}>
-              {format.format(subtotal + delivery)}
-            </span>
-          </div>
-          <div style={{ color: '#64748b', fontSize: 11, marginTop: 4 }}>
-            Flat rate � Delivered to your hostel/address
-          </div>
-
-          <button
-            onClick={() => navigate('/checkout')}
-            style={{
-              marginTop: 16,
-              background: '#f59e0b',
-              color: '#0f172a',
-              border: 'none',
-              width: '100%',
-              padding: '14px',
-              borderRadius: 12,
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: 'pointer',
-              transition: 'background 0.2s, transform 0.15s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#d97706')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = '#f59e0b')}
-          >
-            Proceed to checkout
-          </button>
-
-          <div
-            style={{
-              marginTop: 12,
-              background: 'rgba(245,158,11,0.08)',
-              border: '1px solid rgba(245,158,11,0.2)',
-              borderRadius: 10,
-              padding: '10px 14px',
-              color: '#94a3b8',
-              fontSize: 12,
-              lineHeight: 1.5,
-            }}
-          >
-            ?? We'll contact you via WhatsApp to arrange payment
+            <p className="text-white/25 text-xs text-center mt-4">
+              💳 Pay on delivery — no online payment required
+            </p>
           </div>
         </div>
       </div>
     </div>
   );
 }
-
-const qtyBtnStyle: React.CSSProperties = {
-  background: '#273548',
-  color: '#f1f5f9',
-  border: 'none',
-  width: 32,
-  height: 32,
-  cursor: 'pointer',
-  fontSize: 16,
-  transition: 'background 0.15s',
-};

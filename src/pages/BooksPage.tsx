@@ -1,388 +1,169 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import BookCard from '../components/BookCard';
-import { books } from '../data/books';
-import { useIsMobile } from '../hooks/useIsMobile';
+import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
+import { books, searchBooks } from "../data/books";
+import { BookCard } from "../components/BookCard";
 
-const currency = new Intl.NumberFormat('en-NG', {
-  style: 'currency',
-  currency: 'NGN',
-  maximumFractionDigits: 0,
-});
+const FACULTIES = [
+  "All",
+  "Science",
+  "Arts",
+  "Engineering",
+  "Medicine",
+  "Law",
+  "Education",
+  "Social Sciences",
+  "Business",
+];
 
 export default function BooksPage() {
-  const isMobile = useIsMobile();
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('All');
-  const [priceCap, setPriceCap] = useState(10000);
-  const [inStockOnly, setInStockOnly] = useState(false);
-  const [sort, setSort] = useState('featured');
-  const [sheetOpen, setSheetOpen] = useState(false);
-
-  useEffect(() => {
-    document.body.style.overflow = sheetOpen ? 'hidden' : 'auto';
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
-  }, [sheetOpen]);
-
-  const categories = useMemo(
-    () => ['All', ...Array.from(new Set(books.map((b) => b.category))).sort()],
-    [],
-  );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryParam = searchParams.get("category") || "All";
+  const [search, setSearch] = useState("");
+  const [faculty, setFaculty] = useState(categoryParam);
+  const [sortBy, setSortBy] = useState<
+    "default" | "price-asc" | "price-desc" | "name"
+  >("default");
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   const filtered = useMemo(() => {
-    const normalizedSearch = search.trim().toLowerCase();
-    return books
-      .filter((b) => {
-        const matchesSearch = normalizedSearch
-          ? `${b.title} ${b.author} ${b.courseCode}`.toLowerCase().includes(normalizedSearch)
-          : true;
-        const matchesCategory = category === 'All' || b.category === category;
-        const matchesPrice = b.price <= priceCap;
-        const matchesStock = !inStockOnly || b.inStock;
-        return matchesSearch && matchesCategory && matchesPrice && matchesStock;
-      })
-      .sort((a, b) => {
-        if (sort === 'priceAsc') return a.price - b.price;
-        if (sort === 'priceDesc') return b.price - a.price;
-        if (sort === 'title') return a.title.localeCompare(b.title);
-        return Number(b.featured) - Number(a.featured);
-      });
-  }, [search, category, priceCap, inStockOnly, sort]);
+    let result = search ? searchBooks(search) : [...books];
+    if (faculty !== "All") {
+      result = result.filter(
+        (b) => b.faculty?.toLowerCase() === faculty.toLowerCase(),
+      );
+    }
+    switch (sortBy) {
+      case "price-asc":
+        result.sort((a, b) => a.price - b.price);
+        break;
+      case "price-desc":
+        result.sort((a, b) => b.price - a.price);
+        break;
+      case "name":
+        result.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+    }
+    return result;
+  }, [search, faculty, sortBy]);
 
-  const activeFilters = [category !== 'All', priceCap < 10000, inStockOnly, !!search, sort !== 'featured'].filter(Boolean).length;
-
-  const filterContent = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-      <div>
-        <label style={sectionLabelStyle}>Search</label>
-        <input
-          type="search"
-          placeholder="Title, author, course code"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          style={{
-            marginTop: 8,
-            background: 'var(--bg-tertiary)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 12,
-            padding: '12px 14px',
-            color: 'var(--text-primary)',
-          }}
-        />
-      </div>
-
-      <div>
-        <span style={sectionLabelStyle}>Category</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-          {categories.map((cat) => {
-            const active = cat === category;
-            return (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                style={{
-                  background: active ? 'rgba(245,158,11,0.15)' : 'rgba(255,255,255,0.04)',
-                  border: active
-                    ? '1px solid rgba(245,158,11,0.35)'
-                    : '1px solid rgba(255,255,255,0.08)',
-                  color: active ? '#f59e0b' : '#94a3b8',
-                  padding: '6px 14px',
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                }}
-              >
-                {cat}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div>
-        <span style={sectionLabelStyle}>Price range</span>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 6, color: 'var(--text-muted)', fontSize: 12 }}>
-          <span>?0</span>
-          <span>?10,000</span>
-        </div>
-        <input
-          type="range"
-          min={0}
-          max={10000}
-          step={500}
-          value={priceCap}
-          onChange={(e) => setPriceCap(Number(e.target.value))}
-          style={{ width: '100%', marginTop: 10, accentColor: '#f59e0b' }}
-        />
-        <div style={{ color: '#f59e0b', fontWeight: 700, fontSize: 12, marginTop: 6 }}>
-          Max: {currency.format(priceCap)}
-        </div>
-      </div>
-
-      <div>
-        <span style={sectionLabelStyle}>In Stock</span>
-        <div
-          onClick={() => setInStockOnly((v) => !v)}
-          style={{
-            marginTop: 10,
-            width: 52,
-            height: 28,
-            borderRadius: 14,
-            background: inStockOnly ? '#f59e0b' : '#334155',
-            padding: 3,
-            cursor: 'pointer',
-            position: 'relative',
-            transition: 'background 0.2s',
-          }}
-        >
-          <div
-            style={{
-              width: 22,
-              height: 22,
-              borderRadius: '50%',
-              background: '#fff',
-              position: 'absolute',
-              top: 3,
-              left: inStockOnly ? 27 : 3,
-              transition: 'left 0.2s',
-            }}
-          />
-        </div>
-      </div>
-
-      <div>
-        <span style={sectionLabelStyle}>Sort</span>
-        <select
-          value={sort}
-          onChange={(e) => setSort(e.target.value)}
-          style={{
-            marginTop: 8,
-            background: '#0f172a',
-            color: '#f1f5f9',
-            border: '1px solid var(--border-default)',
-            padding: '10px 12px',
-            borderRadius: 10,
-          }}
-        >
-          <option value="featured">Featured</option>
-          <option value="priceAsc">Price: Low to High</option>
-          <option value="priceDesc">Price: High to Low</option>
-          <option value="title">Title A-Z</option>
-        </select>
-      </div>
-
-      <button
-        onClick={() => {
-          setSearch('');
-          setCategory('All');
-          setPriceCap(10000);
-          setInStockOnly(false);
-          setSort('featured');
-        }}
-        style={{
-          background: 'transparent',
-          border: '1px solid rgba(248,113,113,0.3)',
-          color: '#f87171',
-          width: '100%',
-          padding: 8,
-          borderRadius: 8,
-          fontSize: 12,
-          fontWeight: 600,
-          cursor: 'pointer',
-        }}
-      >
-        Clear filters
-      </button>
-    </div>
-  );
+  const handleFacultyChange = (f: string) => {
+    setFaculty(f);
+    if (f === "All") searchParams.delete("category");
+    else searchParams.set("category", f);
+    setSearchParams(searchParams);
+  };
 
   return (
-    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' }}>
-      <div className="container" style={{ paddingTop: 28, paddingBottom: 10 }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '12px 0' }}>
-          <p style={{ color: '#94a3b8', letterSpacing: 1.6, fontSize: 12, textTransform: 'uppercase' }}>Bookstore</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <h1 style={{ fontSize: 28, fontWeight: 800 }}>Browse official UNN course books</h1>
-            <div style={{ color: '#64748b', fontSize: 13 }}>
-              Showing {filtered.length} of {books.length} books
-            </div>
-          </div>
+    <div className="min-h-screen bg-ink-900">
+      {/* Header */}
+      <section className="bg-ink-800 border-b border-white/[0.06] py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <h1 className="text-3xl font-extrabold text-white mb-2">Bookstore</h1>
+          <p className="text-white/50 text-sm">
+            Browse {books.length}+ academic textbooks
+          </p>
         </div>
-      </div>
+      </section>
 
-      {isMobile && (
-        <div
-          style={{
-            position: 'sticky',
-            top: 64,
-            zIndex: 50,
-            background: '#1e293b',
-            padding: '12px 16px',
-            borderBottom: '1px solid rgba(255,255,255,0.07)',
-            display: 'flex',
-            gap: 8,
-            alignItems: 'center',
-          }}
-        >
-          <button
-            onClick={() => setSheetOpen(true)}
-            style={{
-              background: 'rgba(245,158,11,0.1)',
-              border: '1px solid rgba(245,158,11,0.2)',
-              color: '#f59e0b',
-              padding: '8px 16px',
-              borderRadius: 8,
-              fontSize: 13,
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-            }}
-          >
-            Filters
-            {activeFilters > 0 && (
-              <span
-                style={{
-                  background: '#f59e0b',
-                  color: '#0f172a',
-                  borderRadius: 999,
-                  padding: '2px 8px',
-                  fontSize: 12,
-                  fontWeight: 800,
-                }}
-              >
-                {activeFilters}
-              </span>
-            )}
-          </button>
-          <select
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            style={{
-              flex: 1,
-              background: '#0f172a',
-              color: '#f1f5f9',
-              border: '1px solid var(--border-default)',
-              padding: '10px 12px',
-              borderRadius: 8,
-            }}
-          >
-            <option value="featured">Featured</option>
-            <option value="priceAsc">Price: Low to High</option>
-            <option value="priceDesc">Price: High to Low</option>
-            <option value="title">Title A-Z</option>
-          </select>
-        </div>
-      )}
-
-      <div className="container" style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '260px 1fr', gap: 20, paddingBottom: 48 }}>
-        {!isMobile && (
-          <aside
-            style={{
-              background: '#1e293b',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 16,
-              padding: 20,
-              position: 'sticky',
-              top: 90,
-              height: 'fit-content',
-            }}
-          >
-            <span style={sectionLabelStyle}>Filters</span>
-            <div style={{ marginTop: 12 }}>{filterContent}</div>
-          </aside>
-        )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {!isMobile && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value)}
-                style={{
-                  background: '#0f172a',
-                  color: '#f1f5f9',
-                  border: '1px solid var(--border-default)',
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  minWidth: 180,
-                }}
-              >
-                <option value="featured">Featured</option>
-                <option value="priceAsc">Price: Low to High</option>
-                <option value="priceDesc">Price: High to Low</option>
-                <option value="title">Title A-Z</option>
-              </select>
-            </div>
-          )}
-
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: isMobile
-                ? 'repeat(2, 1fr)'
-                : 'repeat(auto-fill, minmax(195px, 1fr))',
-              gap: isMobile ? 12 : 16,
-            }}
-          >
-            {filtered.map((book) => (
-              <BookCard key={book.id} book={book as any} />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {sheetOpen && isMobile && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.6)',
-            backdropFilter: 'blur(4px)',
-            zIndex: 200,
-          }}
-          onClick={() => setSheetOpen(false)}
-        >
-          <div
-            style={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              background: '#1e293b',
-              borderRadius: '20px 20px 0 0',
-              padding: 20,
-              maxHeight: '80vh',
-              overflowY: 'auto',
-              borderTop: '1px solid rgba(255,255,255,0.1)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              style={{
-                width: 40,
-                height: 4,
-                background: '#475569',
-                borderRadius: 2,
-                margin: '0 auto 20px',
-              }}
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
+        {/* Search + Filters */}
+        <div className="flex flex-col md:flex-row gap-4 mb-8">
+          <div className="relative flex-1">
+            <svg
+              className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by title, course code, or author..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-ink-700 border border-white/10 rounded-xl text-white placeholder:text-white/30 text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
             />
-            {filterContent}
+          </div>
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+            className="bg-ink-700 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-amber-500/50 appearance-none cursor-pointer"
+          >
+            <option value="default">Sort: Default</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+            <option value="name">Name: A → Z</option>
+          </select>
+          <div className="hidden md:flex bg-ink-700 border border-white/10 rounded-xl overflow-hidden">
+            <button
+              onClick={() => setView("grid")}
+              className={`px-3.5 py-3 text-sm ${view === "grid" ? "bg-amber-500/20 text-amber-500" : "text-white/50 hover:text-white"}`}
+            >
+              ▦
+            </button>
+            <button
+              onClick={() => setView("list")}
+              className={`px-3.5 py-3 text-sm ${view === "list" ? "bg-amber-500/20 text-amber-500" : "text-white/50 hover:text-white"}`}
+            >
+              ≡
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Faculty tabs */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-4 mb-6">
+          {FACULTIES.map((f) => (
+            <button
+              key={f}
+              onClick={() => handleFacultyChange(f)}
+              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition-all duration-200 ${
+                faculty === f
+                  ? "bg-amber-500 text-ink-900"
+                  : "bg-ink-700 text-white/50 border border-white/10 hover:border-amber-500/40 hover:text-white"
+              }`}
+            >
+              {f}
+            </button>
+          ))}
+        </div>
+
+        {/* Results */}
+        {filtered.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-5xl mb-4">📚</p>
+            <p className="text-white/50 text-lg font-semibold">
+              No books found
+            </p>
+            <p className="text-white/30 text-sm mt-1">
+              Try a different search or category
+            </p>
+          </div>
+        ) : (
+          <>
+            <p className="text-white/40 text-sm mb-5">
+              {filtered.length} book{filtered.length !== 1 ? "s" : ""} found
+            </p>
+            <div
+              className={
+                view === "grid"
+                  ? "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"
+                  : "flex flex-col gap-4"
+              }
+            >
+              {filtered.map((book) => (
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  layout={view === "list" ? "horizontal" : "vertical"}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
-
-const sectionLabelStyle: React.CSSProperties = {
-  color: '#f59e0b',
-  fontSize: 10,
-  fontWeight: 800,
-  letterSpacing: '1.5px',
-  textTransform: 'uppercase',
-  marginBottom: 10,
-  display: 'block',
-};

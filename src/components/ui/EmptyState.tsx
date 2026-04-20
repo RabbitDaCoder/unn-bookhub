@@ -1,26 +1,43 @@
 import { type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 interface EmptyStateProps {
+  icon: string;
   title: string;
-  description: string;
-  icon?: ReactNode;
-  action?: ReactNode;
+  description?: string;
+  actionLabel?: string;
+  actionTo?: string;
+  children?: ReactNode;
 }
 
-export default function EmptyState({
+export function EmptyState({
+  icon,
   title,
   description,
-  icon,
-  action,
+  actionLabel,
+  actionTo,
+  children,
 }: EmptyStateProps) {
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/5 p-12 text-center">
-      <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl bg-white/10 text-white text-3xl">
+    <div className="text-center py-16">
+      <div className="w-20 h-20 rounded-2xl bg-white/[0.04] flex items-center justify-center text-4xl mx-auto mb-5">
         {icon}
       </div>
-      <h2 className="text-2xl font-bold mb-3">{title}</h2>
-      <p className="max-w-xl mx-auto opacity-70 mb-8">{description}</p>
-      {action}
+      <h3 className="text-white font-bold text-lg mb-2">{title}</h3>
+      {description && (
+        <p className="text-white/40 text-sm mb-6 max-w-sm mx-auto">
+          {description}
+        </p>
+      )}
+      {actionLabel && actionTo && (
+        <Link
+          to={actionTo}
+          className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-500 text-ink-900 font-bold text-sm shadow-amber hover:bg-amber-600 hover:-translate-y-0.5 transition-all duration-200"
+        >
+          {actionLabel}
+        </Link>
+      )}
+      {children}
     </div>
   );
 }

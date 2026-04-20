@@ -1,231 +1,198 @@
-import { BookOpen, ShoppingCart, Wallet, MessageSquare } from 'lucide-react';
-import { useAuthStore, useCartStore } from '../store/useStore';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuthStore } from "../store/useStore";
+import { getUserOrders } from "../supabase";
+import type { Order } from "../types";
 
 export default function DashboardPage() {
-  const userProfile = useAuthStore((s) => s.userProfile);
-  const cart = useCartStore();
-  const isTablet = typeof window !== 'undefined' && window.innerWidth <= 1100;
-  const isNarrow = typeof window !== 'undefined' && window.innerWidth <= 960;
+  const { user, userProfile } = useAuthStore();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const stats = [
-    { label: 'Books in Cart', value: cart.totalItems, icon: BookOpen },
-    { label: 'Active Orders', value: cart.totalItems ? Math.min(3, cart.totalItems) : 0, icon: ShoppingCart },
-    { label: 'Estimated Total', value: new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN', maximumFractionDigits: 0 }).format(cart.totalAmount || 0), icon: Wallet },
-    { label: 'Support Requests', value: 1, icon: MessageSquare },
-  ];
+  useEffect(() => {
+    if (user) {
+      getUserOrders(user.id)
+        .then((o) => {
+          setOrders(o);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [user]);
+
+  const recentOrders = orders.slice(0, 5);
+  const totalSpent = orders.reduce((a, o) => a + o.totalAmount, 0);
+  const pendingOrders = orders.filter(
+    (o) => o.status === "pending" || o.status === "processing",
+  ).length;
 
   return (
-    <div style={{ background: 'var(--bg-primary)', minHeight: '100vh', color: 'var(--text-primary)' }}>
-      <div className="container" style={{ padding: '28px 0 48px' }}>
-        <div
-          style={{
-            background: 'linear-gradient(135deg, #1e293b 0%, #162032 100%)',
-            border: '1px solid rgba(245,158,11,0.15)',
-            borderRadius: 20,
-            padding: '28px 32px',
-            display: 'grid',
-            gridTemplateColumns: isNarrow ? '1fr' : '2fr 1fr',
-            gap: 16,
-          }}
-        >
-          <div>
-            <div style={{ color: '#f1f5f9', fontSize: 26, fontWeight: 800 }}>
-              Good day, {userProfile?.fullName?.split(' ')[0] || 'Student'} ??
-            </div>
-            <div style={{ color: '#64748b', fontSize: 14, marginTop: 6 }}>
-              {userProfile?.email || 'student@unn.edu.ng'} � {userProfile?.role || 'student'}
-            </div>
-            <div style={{ marginTop: 18, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              <a
-                href="/books"
-                style={{
-                  background: 'rgba(245,158,11,0.1)',
-                  border: '1px solid rgba(245,158,11,0.2)',
-                  color: '#f59e0b',
-                  padding: '8px 18px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                Browse books
-              </a>
-              <a
-                href="/orders"
-                style={{
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid rgba(255,255,255,0.1)',
-                  color: '#f1f5f9',
-                  padding: '8px 18px',
-                  borderRadius: 8,
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                View orders
-              </a>
-            </div>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, alignItems: 'center' }}>
-            {stats.slice(0, 2).map((stat) => (
-              <div
-                key={stat.label}
-                style={{
-                  background: '#1e293b',
-                  border: '1px solid rgba(255,255,255,0.07)',
-                  borderRadius: 14,
-                  padding: 16,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                }}
-              >
-                <div
-                  style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 12,
-                    background: 'rgba(245,158,11,0.1)',
-                    display: 'grid',
-                    placeItems: 'center',
-                    color: '#f59e0b',
-                  }}
-                >
-                  <stat.icon size={20} />
-                </div>
-                <div>
-                  <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                    {stat.label}
-                  </div>
-                  <div style={{ color: '#f1f5f9', fontSize: 20, fontWeight: 800 }}>{stat.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="min-h-screen bg-ink-900">
+      <section className="bg-ink-800 border-b border-white/[0.06] py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <h1 className="text-3xl font-extrabold text-white mb-1">
+            Welcome back,{" "}
+            <span className="text-amber-500">
+              {user?.user_metadata?.full_name?.split(" ")[0] || "Student"}
+            </span>{" "}
+            👋
+          </h1>
+          <p className="text-white/40 text-sm">Here's your activity overview</p>
         </div>
+      </section>
 
-        <div style={{ marginTop: 20, display: 'grid', gridTemplateColumns: isTablet ? '1fr' : 'repeat(4, minmax(0,1fr))', gap: 14 }}>
-          {stats.map((stat) => (
+      <div className="max-w-7xl mx-auto px-6 lg:px-12 py-8">
+        {/* Stats */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {[
+            {
+              label: "Total Orders",
+              value: orders.length,
+              icon: "📦",
+              color: "amber",
+            },
+            {
+              label: "Total Spent",
+              value: `₦${totalSpent.toLocaleString()}`,
+              icon: "💰",
+              color: "green",
+            },
+            {
+              label: "Pending",
+              value: pendingOrders,
+              icon: "⏳",
+              color: "yellow",
+            },
+            {
+              label: "Delivered",
+              value: orders.filter((o) => o.status === "delivered").length,
+              icon: "✅",
+              color: "green",
+            },
+          ].map((stat) => (
             <div
               key={stat.label}
-              style={{
-                background: '#1e293b',
-                border: '1px solid rgba(255,255,255,0.07)',
-                borderRadius: 14,
-                padding: 20,
-              }}
+              className="bg-ink-700 border border-white/[0.06] rounded-2xl p-5"
             >
-              <div
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: 'rgba(245,158,11,0.1)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  color: '#f59e0b',
-                }}
-              >
-                <stat.icon size={20} />
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-2xl">{stat.icon}</span>
+                <span className="text-white/40 text-xs font-bold uppercase tracking-wide">
+                  {stat.label}
+                </span>
               </div>
-              <div style={{ color: '#64748b', fontSize: 11, fontWeight: 600, letterSpacing: '0.5px', textTransform: 'uppercase', marginBottom: 4, marginTop: 10 }}>
-                {stat.label}
-              </div>
-              <div style={{ color: '#f1f5f9', fontSize: 28, fontWeight: 800, lineHeight: 1 }}>
-                {stat.value}
-              </div>
-              <div style={{ color: '#475569', fontSize: 11, marginTop: 4 }}>Updated just now</div>
+              <p className="text-white text-2xl font-extrabold">{stat.value}</p>
             </div>
           ))}
         </div>
 
-        <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: isTablet ? '1fr' : '1.3fr 1fr', gap: 16 }}>
-          <div
-            style={{
-              background: '#1e293b',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 16,
-              padding: 20,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h3 style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>Recent activity</h3>
-              <span style={{ background: 'rgba(255,255,255,0.05)', color: '#94a3b8', borderRadius: 999, padding: '4px 10px', fontSize: 12 }}>Live</span>
-            </div>
-            <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {["Order placed", "Profile updated", "Wishlist saved"].map((title, idx) => (
-                <div
-                  key={title}
-                  style={{
-                    border: '1px solid rgba(255,255,255,0.05)',
-                    borderRadius: 12,
-                    padding: 14,
-                    background: '#0f172a',
-                  }}
-                >
-                  <div style={{ color: '#f1f5f9', fontWeight: 700 }}>{title}</div>
-                  <div style={{ color: '#64748b', fontSize: 13, marginTop: 4 }}>
-                    {idx === 0
-                      ? 'Your book order has been confirmed and is being prepared for delivery.'
-                      : idx === 1
-                        ? 'Email and department were saved successfully.'
-                        : 'New books added for next semester courses.'}
-                  </div>
-                  <div style={{ color: '#475569', fontSize: 11, marginTop: 6 }}>Today</div>
-                </div>
-              ))}
-            </div>
+        {/* Quick actions */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {[
+            {
+              to: "/books",
+              label: "Browse Books",
+              icon: "📚",
+              desc: "Find your course materials",
+            },
+            {
+              to: "/orders",
+              label: "My Orders",
+              icon: "📋",
+              desc: "Track order status",
+            },
+            {
+              to: "/library",
+              label: "E-Library",
+              icon: "📖",
+              desc: "Read & listen",
+            },
+            {
+              to: "/complaints",
+              label: "Complaints",
+              icon: "💬",
+              desc: "Get help with issues",
+            },
+          ].map((action) => (
+            <Link
+              key={action.to}
+              to={action.to}
+              className="bg-ink-700 border border-white/[0.06] rounded-2xl p-5 hover:border-amber-500/30 hover:-translate-y-0.5 transition-all duration-200 group"
+            >
+              <span className="text-2xl mb-3 block">{action.icon}</span>
+              <p className="text-white font-bold text-sm group-hover:text-amber-500 transition-colors">
+                {action.label}
+              </p>
+              <p className="text-white/40 text-xs mt-1">{action.desc}</p>
+            </Link>
+          ))}
+        </div>
+
+        {/* Recent orders */}
+        <div className="bg-ink-700 border border-white/[0.06] rounded-2xl p-6">
+          <div className="flex justify-between items-center mb-5">
+            <h2 className="text-lg font-bold text-white">Recent Orders</h2>
+            <Link
+              to="/orders"
+              className="text-amber-500 text-sm font-bold hover:text-amber-400"
+            >
+              View all →
+            </Link>
           </div>
 
-          <div
-            style={{
-              background: '#1e293b',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 16,
-              padding: 20,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 12,
-            }}
-          >
-            <h3 style={{ color: '#f1f5f9', fontSize: 16, fontWeight: 700 }}>Cart preview</h3>
-            <div>
-              {cart.items.slice(0, 3).map((item) => (
-                <div
-                  key={item.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 0',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                  }}
-                >
-                  <div
-                    style={{
-                      width: 42,
-                      height: 56,
-                      borderRadius: 10,
-                      background: item.coverColor,
-                      border: '1px solid rgba(255,255,255,0.08)',
-                    }}
-                  />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: '#e2e8f0', fontSize: 13, fontWeight: 600, lineHeight: 1.3 }}>
-                      {item.title}
-                    </div>
-                    <div className="badge badge-amber" style={{ marginTop: 6 }}>{item.courseCode}</div>
-                  </div>
-                  <div style={{ color: '#f59e0b', fontWeight: 700 }}>
-                    ?{item.price * item.quantity}
-                  </div>
-                </div>
-              ))}
-              {cart.items.length === 0 && (
-                <div style={{ color: '#64748b', fontSize: 13 }}>No items in cart.</div>
-              )}
+          {loading ? (
+            <div className="text-center py-8 text-white/30 text-sm">
+              Loading...
             </div>
-          </div>
+          ) : recentOrders.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-white/30 text-sm">No orders yet</p>
+              <Link
+                to="/books"
+                className="text-amber-500 text-sm font-bold mt-2 inline-block"
+              >
+                Browse books →
+              </Link>
+            </div>
+          ) : (
+            <div className="divide-y divide-white/[0.06]">
+              {recentOrders.map((order) => (
+                <Link
+                  key={order.id}
+                  to={`/orders/${order.id}`}
+                  className="flex items-center justify-between py-4 hover:bg-white/[0.02] -mx-3 px-3 rounded-lg transition-colors"
+                >
+                  <div>
+                    <p className="text-white text-sm font-semibold">
+                      Order #{order.id.slice(0, 8)}
+                    </p>
+                    <p className="text-white/40 text-xs mt-0.5">
+                      {order.items.length} item
+                      {order.items.length !== 1 ? "s" : ""} ·{" "}
+                      {new Date(order.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-white text-sm font-bold">
+                      ₦{order.totalAmount.toLocaleString()}
+                    </p>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        order.status === "delivered"
+                          ? "bg-green-500/15 text-green-400"
+                          : order.status === "pending"
+                            ? "bg-yellow-500/15 text-yellow-400"
+                            : order.status === "processing"
+                              ? "bg-blue-500/15 text-blue-400"
+                              : "bg-white/10 text-white/50"
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

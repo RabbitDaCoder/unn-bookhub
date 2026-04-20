@@ -1,21 +1,12 @@
-import React from 'react';
-import Spinner from './Spinner';
+import { Spinner } from "./Spinner";
 
-export function FullPageSpinner({ label = 'Loading...' }: { label?: string }) {
+export function FullPageSpinner() {
   return (
-    <div
-      style={{
-        minHeight: '60vh',
-        display: 'grid',
-        placeItems: 'center',
-        gap: 12,
-        color: 'var(--text-1)',
-      }}
-    >
-      <Spinner size={28} />
-      <div style={{ color: 'var(--text-3)', fontSize: 14 }}>{label}</div>
+    <div className="min-h-screen bg-ink-900 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-4">
+        <Spinner size="lg" />
+        <p className="text-white/40 text-sm font-medium">Loading...</p>
+      </div>
     </div>
   );
 }
-
-export default FullPageSpinner;

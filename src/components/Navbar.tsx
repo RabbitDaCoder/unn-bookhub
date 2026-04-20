@@ -1,320 +1,252 @@
-import React, { useMemo, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuthStore, useCartStore } from '../store/useStore';
-import { logOut } from '../firebase';
-import { useIsMobile } from '../hooks/useIsMobile';
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useAuthStore, useCartStore } from "../store/useStore";
+import { logOut } from "../supabase";
+import { Logo } from "./Logo";
 
-export default function Navbar() {
-  const location = useLocation();
-  const navigate = useNavigate();
+export function Navbar() {
   const { user, userProfile, loading } = useAuthStore();
-  const { totalItems } = useCartStore();
-  const isMobile = useIsMobile(900);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { items } = useCartStore();
+  const totalItems = items.reduce((a, i) => a + i.quantity, 0);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [cartBounce, setCartBounce] = useState(false);
 
-  const links = useMemo(
-    () => [
-      { label: 'Home', to: '/' },
-      { label: 'Bookstore', to: '/books' },
-      { label: 'Library', to: '/library' },
-      { label: 'Dashboard', to: '/dashboard', auth: true },
-      { label: 'Orders', to: '/orders', auth: true },
-    ],
-    [],
-  );
+  useEffect(() => {
+    if (totalItems > 0) {
+      setCartBounce(true);
+      const t = setTimeout(() => setCartBounce(false), 600);
+      return () => clearTimeout(t);
+    }
+  }, [totalItems]);
 
-  const isActive = (path: string) => location.pathname === path;
+  const navLinks = [
+    { to: "/", label: "Home" },
+    { to: "/books", label: "Bookstore" },
+    { to: "/library", label: "Library" },
+    { to: "/about", label: "About Us" },
+    { to: "/contact", label: "Contact Us" },
+  ];
 
-  const brand = (
-    <Link
-      to="/"
-      style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}
-      onClick={() => setMenuOpen(false)}
-    >
-      <div
-        style={{
-          width: 38,
-          height: 38,
-          borderRadius: 12,
-          background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
-          display: 'grid',
-          placeItems: 'center',
-          color: '#0f172a',
-          fontWeight: 800,
-          boxShadow: '0 10px 28px rgba(245,158,11,0.25)',
-        }}
-      >
-        ??
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <span style={{ color: 'var(--text-1)', fontWeight: 800, fontSize: 17 }}>UNN BookHub</span>
-        <span style={{ color: 'var(--text-3)', fontSize: 11, letterSpacing: 0.4 }}>University of Nigeria</span>
-      </div>
-    </Link>
-  );
-
-  const NavLinks = ({ variant }: { variant: 'desktop' | 'mobile' }) => (
-    <>
-      {links
-        .filter((l) => !l.auth || user)
-        .map((link) => (
-          <button
-            key={link.to}
-            onClick={() => {
-              setMenuOpen(false);
-              navigate(link.to);
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: isActive(link.to) ? 'var(--text-amber)' : 'var(--text-1)',
-              padding: variant === 'desktop' ? '10px 12px' : '16px 0',
-              borderBottom: variant === 'mobile' ? '1px solid var(--border-faint)' : 'none',
-              textAlign: variant === 'mobile' ? 'left' : 'center',
-              width: variant === 'mobile' ? '100%' : 'auto',
-              fontSize: variant === 'mobile' ? 22 : 14,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            {link.label}
-          </button>
-        ))}
-    </>
-  );
-
-  const hamburger = (
-    <button
-      aria-label="Toggle navigation"
-      onClick={() => setMenuOpen((v) => !v)}
-      style={{
-        width: 40,
-        height: 40,
-        background: 'var(--layer-05)',
-        border: '1px solid var(--border-default)',
-        borderRadius: 10,
-        display: 'grid',
-        placeItems: 'center',
-        cursor: 'pointer',
-      }}
-    >
-      <div style={{ position: 'relative', width: 18, height: 14 }}>
-        {[0, 1, 2].map((i) => {
-          const positions = [0, 6, 12];
-          const transform = menuOpen
-            ? i === 0
-              ? 'translateY(6px) rotate(45deg)'
-              : i === 1
-                ? 'scaleX(0)'
-                : 'translateY(-6px) rotate(-45deg)'
-            : `translateY(${positions[i]}px)`;
-          const opacity = menuOpen && i === 1 ? 0 : 1;
-          return (
-            <span
-              key={i}
-              style={{
-                position: 'absolute',
-                left: 0,
-                width: 18,
-                height: 2,
-                borderRadius: 999,
-                background: 'var(--text-1)',
-                transition: 'transform 0.2s ease, opacity 0.2s ease',
-                transform,
-                opacity,
-              }}
-            />
-          );
-        })}
-      </div>
-    </button>
-  );
-
-  const authArea = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      {loading ? (
-        <div style={{ width: 90, height: 36, borderRadius: 12, background: 'var(--layer-08)' }} />
-      ) : user ? (
-        <button
-          onClick={() => navigate('/profile')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 10,
-            padding: '8px 12px',
-            background: 'var(--layer-05)',
-            border: '1px solid var(--border-default)',
-            borderRadius: 12,
-            color: 'var(--text-1)',
-            cursor: 'pointer',
-          }}
-        >
-          <div
-            style={{
-              width: 30,
-              height: 30,
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
-              display: 'grid',
-              placeItems: 'center',
-              color: '#0f172a',
-              fontWeight: 800,
-            }}
-          >
-            {(userProfile?.fullName || user.email || 'UN')[0]}
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 14 }}>
-            {userProfile?.fullName?.split(' ')[0] || user.email}
-          </span>
-        </button>
-      ) : (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link
-            to="/login"
-            style={{
-              border: '1px solid var(--border-default)',
-              color: 'var(--text-1)',
-              padding: '10px 12px',
-              borderRadius: 12,
-              fontWeight: 700,
-            }}
-          >
-            Login
-          </Link>
-          <Link
-            to="/register"
-            style={{
-              background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
-              color: '#0f172a',
-              padding: '10px 12px',
-              borderRadius: 12,
-              fontWeight: 800,
-            }}
-          >
-            Register
-          </Link>
-        </div>
-      )}
-    </div>
-  );
+  const isActive = (path: string) =>
+    path === "/"
+      ? location.pathname === "/"
+      : location.pathname.startsWith(path);
 
   return (
-    <nav
-      style={{
-        position: 'sticky',
-        top: 0,
-        zIndex: 150,
-        backdropFilter: 'blur(14px)',
-        background: 'rgba(15,23,42,0.92)',
-        borderBottom: '1px solid var(--border-faint)',
-      }}
-    >
-      <div
-        className="container"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          minHeight: 70,
-          gap: 16,
-        }}
-      >
-        {brand}
-
-        {!isMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <NavLinks variant="desktop" />
-          </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <Link
-            to="/cart"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              background: 'rgba(245,158,11,0.12)',
-              color: 'var(--text-amber)',
-              border: '1px solid var(--border-amber)',
-              padding: '10px 12px',
-              borderRadius: 12,
-              fontWeight: 700,
-              textDecoration: 'none',
-            }}
-          >
-            ??
-            <span>{totalItems} items</span>
+    <>
+      <nav className="sticky top-0 z-50 bg-ink-900/90 backdrop-blur-xl border-b border-white/[0.07]">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12 h-[68px] flex items-center justify-between">
+          <Link to="/" onClick={() => setMobileOpen(false)}>
+            <Logo size="md" />
           </Link>
 
-          {!isMobile && authArea}
-          {isMobile && hamburger}
-        </div>
-      </div>
+          {/* Desktop Nav */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`relative px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200
+                  ${
+                    isActive(link.to)
+                      ? "text-amber-500 bg-amber-500/10"
+                      : "text-white/60 hover:text-white hover:bg-white/[0.06]"
+                  }`}
+              >
+                {link.label}
+                {isActive(link.to) && (
+                  <span className="absolute -bottom-px left-3 right-3 h-[2px] bg-amber-500 rounded-full" />
+                )}
+              </Link>
+            ))}
+          </div>
 
-      {isMobile && menuOpen && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15,23,42,0.98)',
-            backdropFilter: 'blur(20px)',
-            zIndex: 300,
-            display: 'flex',
-            flexDirection: 'column',
-            padding: '80px 32px 32px',
-            gap: 10,
-          }}
-        >
-          <NavLinks variant="mobile" />
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            {/* Cart */}
+            <Link
+              to="/cart"
+              className="relative p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/[0.06] transition-all duration-200"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" />
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <path d="M16 10a4 4 0 01-8 0" />
+              </svg>
+              {totalItems > 0 && (
+                <span
+                  className={`absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] bg-amber-500 text-ink-900 text-[10px] font-black rounded-full flex items-center justify-center border-2 border-ink-900 ${cartBounce ? "animate-bounce" : ""}`}
+                >
+                  {totalItems > 9 ? "9+" : totalItems}
+                </span>
+              )}
+            </Link>
 
-          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {user ? (
-              <>
+            {/* Auth */}
+            {loading ? (
+              <div className="w-20 h-9 bg-white/10 rounded-xl animate-pulse" />
+            ) : user ? (
+              <div className="relative">
                 <button
-                  onClick={() => {
-                    setMenuOpen(false);
-                    navigate('/profile');
-                  }}
-                  style={{
-                    border: '1px solid var(--border-default)',
-                    color: 'var(--text-1)',
-                    padding: '14px',
-                    borderRadius: 12,
-                    fontSize: 16,
-                    fontWeight: 600,
-                    background: 'transparent',
-                    cursor: 'pointer',
-                  }}
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/15 transition-all duration-200"
                 >
-                  View Profile
+                  <div className="w-7 h-7 rounded-full bg-amber-500 flex items-center justify-center text-ink-900 text-xs font-black flex-shrink-0">
+                    {user.user_metadata?.full_name?.[0]?.toUpperCase() || "U"}
+                  </div>
+                  <span className="text-white text-sm font-semibold max-w-[100px] truncate hidden sm:block">
+                    {user.user_metadata?.full_name?.split(" ")[0] || "Student"}
+                  </span>
+                  <svg
+                    className={`w-4 h-4 text-white/50 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    viewBox="0 0 24 24"
+                  >
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
                 </button>
-                <button
-                  onClick={async () => {
-                    await logOut();
-                    setMenuOpen(false);
-                    navigate('/');
-                  }}
-                  style={{
-                    background: 'linear-gradient(135deg, var(--amber-400), var(--amber-500))',
-                    color: '#0f172a',
-                    padding: '14px',
-                    borderRadius: 12,
-                    fontSize: 16,
-                    fontWeight: 700,
-                    border: 'none',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Sign Out
-                </button>
-              </>
+
+                {dropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-ink-600 border border-white/10 rounded-2xl p-2 shadow-xl z-50 animate-fade-up">
+                    <div className="px-3 py-2.5 mb-1 border-b border-white/[0.06]">
+                      <p className="text-white text-sm font-semibold truncate">
+                        {user.user_metadata?.full_name || "Student"}
+                      </p>
+                      <p className="text-white/40 text-xs truncate mt-0.5">
+                        {user.email}
+                      </p>
+                    </div>
+                    {[
+                      { to: "/dashboard", label: "Dashboard", icon: "⊞" },
+                      { to: "/profile", label: "My Profile", icon: "👤" },
+                      { to: "/orders", label: "My Orders", icon: "📦" },
+                      { to: "/complaints", label: "Complaints", icon: "💬" },
+                      ...(userProfile?.role === "admin"
+                        ? [{ to: "/admin", label: "Admin Panel", icon: "⚙️" }]
+                        : []),
+                    ].map((item) => (
+                      <Link
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/70 text-sm hover:text-white hover:bg-white/[0.07] transition-all duration-150"
+                      >
+                        <span className="text-base w-5 text-center">
+                          {item.icon}
+                        </span>
+                        {item.label}
+                      </Link>
+                    ))}
+                    <div className="border-t border-white/[0.06] mt-1 pt-1">
+                      <button
+                        onClick={() => {
+                          logOut();
+                          setDropdownOpen(false);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 text-sm hover:bg-red-400/10 transition-all duration-150"
+                      >
+                        <span className="text-base w-5 text-center">→</span>
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
-              authArea
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/login"
+                  className="hidden sm:block px-4 py-2 rounded-xl text-white/70 text-sm font-semibold border border-white/15 hover:border-white/30 hover:text-white transition-all duration-200"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/register"
+                  className="px-4 py-2 rounded-xl bg-amber-500 text-ink-900 text-sm font-bold hover:bg-amber-600 transition-all duration-200 shadow-amber"
+                >
+                  Register
+                </Link>
+              </div>
             )}
+
+            {/* Hamburger */}
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden p-2 rounded-xl bg-white/[0.06] border border-white/10 text-white/70 hover:text-white transition-all duration-200"
+            >
+              <div className="w-5 h-4 flex flex-col justify-between">
+                <span
+                  className={`block h-0.5 bg-current rounded transition-all duration-300 ${mobileOpen ? "rotate-45 translate-y-[7px]" : ""}`}
+                />
+                <span
+                  className={`block h-0.5 bg-current rounded transition-all duration-300 ${mobileOpen ? "opacity-0" : ""}`}
+                />
+                <span
+                  className={`block h-0.5 bg-current rounded transition-all duration-300 ${mobileOpen ? "-rotate-45 -translate-y-[9px]" : ""}`}
+                />
+              </div>
+            </button>
           </div>
         </div>
+      </nav>
+
+      {/* Mobile Menu */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-40 bg-ink-900/98 backdrop-blur-2xl flex flex-col pt-20 pb-8 px-6 animate-fade-up md:hidden">
+          <div className="flex flex-col gap-2 flex-1">
+            {navLinks.map((link, i) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                onClick={() => setMobileOpen(false)}
+                className={`text-3xl font-extrabold py-4 border-b border-white/[0.06] animate-fade-up transition-colors duration-200 ${isActive(link.to) ? "text-amber-500" : "text-white hover:text-amber-400"}`}
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </div>
+          {!user ? (
+            <div className="flex flex-col gap-3 mt-8">
+              <Link
+                to="/login"
+                onClick={() => setMobileOpen(false)}
+                className="w-full py-4 text-center rounded-2xl border border-white/20 text-white text-lg font-bold"
+              >
+                Login
+              </Link>
+              <Link
+                to="/register"
+                onClick={() => setMobileOpen(false)}
+                className="w-full py-4 text-center rounded-2xl bg-amber-500 text-ink-900 text-lg font-bold"
+              >
+                Create Account
+              </Link>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                logOut();
+                setMobileOpen(false);
+              }}
+              className="w-full py-4 text-center rounded-2xl border border-red-400/30 text-red-400 text-lg font-bold mt-8"
+            >
+              Sign Out
+            </button>
+          )}
+        </div>
       )}
-    </nav>
+    </>
   );
 }

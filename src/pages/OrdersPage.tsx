@@ -1,112 +1,105 @@
-import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { BookCover } from '../components/ui/BookCover';
-import Card from '../components/ui/Card';
-
-const mockOrders = [
-  {
-    id: 'ORD-10241',
-    date: '2026-04-10',
-    status: 'Pending',
-    items: [
-      { id: 'book-cos-101', courseCode: 'COS 101', title: 'Intro to Computer Science', coverColor: '#1f2937' },
-      { id: 'book-mth-101', courseCode: 'MTH 101', title: 'Calculus', coverColor: '#2563eb' },
-    ],
-    total: 8200,
-  },
-  {
-    id: 'ORD-10198',
-    date: '2026-04-02',
-    status: 'Delivered',
-    items: [
-      { id: 'book-eng-101', courseCode: 'ENG 101', title: 'English Language', coverColor: '#c2410c' },
-    ],
-    total: 2600,
-  },
-];
-
-const tabs = ['All', 'Pending', 'Confirmed', 'Delivered'];
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { useAuthStore } from "../store/useStore";
+import { getUserOrders } from "../supabase";
+import type { Order } from "../types";
 
 export default function OrdersPage() {
-  const [tab, setTab] = useState('All');
+  const { user } = useAuthStore();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = useMemo(
-    () => mockOrders.filter((o) => (tab === 'All' ? true : o.status === tab)),
-    [tab],
-  );
+  useEffect(() => {
+    if (user) {
+      getUserOrders(user.id)
+        .then((o) => {
+          setOrders(o);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    }
+  }, [user]);
 
   return (
-    <div style={{ background: 'var(--bg-base)', color: 'var(--text-1)', minHeight: '100vh' }}>
-      <div className="container" style={{ padding: '28px 0 48px', display: 'grid', gap: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800 }}>My Orders</h2>
-            <span className="badge badge-amber">{filtered.length}</span>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {tabs.map((t) => {
-              const active = t === tab;
-              return (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  style={{
-                    background: active ? 'var(--amber-200)' : 'var(--bg-elevated)',
-                    color: active ? 'var(--text-amber)' : 'var(--text-3)',
-                    border: active ? '1px solid var(--border-amber)' : '1px solid var(--border-subtle)',
-                    borderRadius: 12,
-                    padding: '8px 12px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  {t}
-                </button>
-              );
-            })}
-          </div>
+    <div className="min-h-screen bg-ink-900">
+      <section className="bg-ink-800 border-b border-white/[0.06] py-10">
+        <div className="max-w-7xl mx-auto px-6 lg:px-12">
+          <h1 className="text-3xl font-extrabold text-white mb-1">My Orders</h1>
+          <p className="text-white/40 text-sm">
+            Track and manage your book orders
+          </p>
         </div>
+      </section>
 
-        <div style={{ display: 'grid', gap: 12 }}>
-          {filtered.map((order) => (
-            <Card key={order.id} padding={20} style={{ borderRadius: 'var(--r-xl)', cursor: 'pointer', transition: 'border-color 0.2s, background 0.2s' }}>
-              <Link to={`/orders/${order.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                    <span style={{ fontFamily: '"JetBrains Mono", monospace', color: 'var(--text-amber)', fontWeight: 800 }}>{order.id}</span>
-                    <span style={{ color: 'var(--text-3)', fontSize: 13 }}>{order.date}</span>
+      <div className="max-w-5xl mx-auto px-6 lg:px-12 py-8">
+        {loading ? (
+          <div className="text-center py-20 text-white/30">
+            Loading orders...
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-5xl mb-4">📦</p>
+            <p className="text-white text-xl font-bold mb-2">No orders yet</p>
+            <p className="text-white/40 mb-6 text-sm">
+              Your order history will appear here
+            </p>
+            <Link
+              to="/books"
+              className="inline-flex px-7 py-3.5 rounded-full bg-amber-500 text-ink-900 font-bold shadow-amber hover:bg-amber-600 transition-all duration-200"
+            >
+              Browse Bookstore →
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {orders.map((order) => (
+              <Link
+                key={order.id}
+                to={`/orders/${order.id}`}
+                className="bg-ink-700 border border-white/[0.06] rounded-2xl p-5 hover:border-amber-500/20 transition-all duration-200 group"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-white font-bold group-hover:text-amber-500 transition-colors">
+                      Order #{order.id.slice(0, 8)}
+                    </p>
+                    <p className="text-white/40 text-xs mt-0.5">
+                      {new Date(order.createdAt).toLocaleDateString("en-NG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </p>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {order.items.map((i) => (
-                        <BookCover key={i.id} courseCode={i.courseCode} title={i.title} color={i.coverColor} size="sm" />
-                      ))}
-                    </div>
-                    <span style={{ color: 'var(--text-3)', fontSize: 13 }}>+ {order.items.length} item(s)</span>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-                    <strong style={{ color: 'var(--text-1)', fontSize: 16 }}>?{order.total.toLocaleString()}</strong>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span
-                        className="badge"
-                        style={{
-                          background: order.status === 'Delivered' ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-                          border: '1px solid var(--border-subtle)',
-                          color: order.status === 'Delivered' ? 'var(--success)' : 'var(--text-amber)',
-                        }}
-                      >
-                        {order.status}
-                      </span>
-                      <span style={{ color: 'var(--text-amber)', fontWeight: 700 }}>View Details ?</span>
-                    </div>
-                  </div>
+                  <span
+                    className={`text-xs font-bold px-3 py-1 rounded-full ${
+                      order.status === "delivered"
+                        ? "bg-green-500/15 text-green-400"
+                        : order.status === "pending"
+                          ? "bg-yellow-500/15 text-yellow-400"
+                          : order.status === "processing"
+                            ? "bg-blue-500/15 text-blue-400"
+                            : order.status === "cancelled"
+                              ? "bg-red-500/15 text-red-400"
+                              : "bg-white/10 text-white/50"
+                    }`}
+                  >
+                    {order.status}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-white/50 text-sm">
+                    {order.items.length} item
+                    {order.items.length !== 1 ? "s" : ""}
+                  </p>
+                  <p className="text-amber-500 font-extrabold">
+                    ₦{order.totalAmount.toLocaleString()}
+                  </p>
                 </div>
               </Link>
-            </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

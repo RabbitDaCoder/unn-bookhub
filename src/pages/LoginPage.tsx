@@ -1,213 +1,105 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import Button from "../components/ui/Button";
-import Input from "../components/ui/Input";
-import { LogIn } from "lucide-react";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { loginWithEmail } from "../supabase";
+import { useToast } from "../context/ToastContext";
+import { Logo } from "../components/Logo";
 
 export default function LoginPage() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await loginWithEmail(email, password);
+      toast("Welcome back!", "success");
+      navigate("/dashboard");
+    } catch (err: any) {
+      toast(err.message || "Login failed", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "grid",
-        gridTemplateColumns: "1fr",
-        background: "var(--bg-base)",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
-          minHeight: "100vh",
-        }}
-      >
-        <div
-          className="hide-mobile"
-          style={{
-            background: "linear-gradient(160deg, #0f172a 0%, #1a2540 100%)",
-            borderRight: "1px solid var(--border-subtle)",
-            display: "grid",
-            placeItems: "center",
-            padding: 32,
-          }}
-        >
-          <div
-            style={{
-              maxWidth: 360,
-              display: "grid",
-              gap: 16,
-              textAlign: "center",
-            }}
-          >
-            <div style={{ marginBottom: 6 }}>
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 16,
-                  background:
-                    "linear-gradient(135deg, var(--amber-400), var(--amber-500))",
-                  display: "grid",
-                  placeItems: "center",
-                  color: "#0f172a",
-                  fontWeight: 800,
-                  fontSize: 26,
-                  margin: "0 auto",
-                }}
-              >
-                ??
-              </div>
-            </div>
-            <h2
-              style={{ fontSize: 32, fontWeight: 800, color: "var(--text-1)" }}
-            >
-              UNN BookHub
-            </h2>
-            <p style={{ color: "var(--text-3)" }}>
-              Modern access to UNN course books and library resources.
-            </p>
-            <div
-              style={{
-                display: "grid",
-                gap: 10,
-                color: "var(--text-1)",
-                textAlign: "left",
-              }}
-            >
-              {[
-                "500+ course books curated",
-                "Fast hostel delivery",
-                "Verified student accounts",
-              ].map((t) => (
-                <div
-                  key={t}
-                  style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
-                  <span style={{ color: "var(--text-amber)" }}>?</span> {t}
-                </div>
-              ))}
-            </div>
-            <div style={{ color: "var(--text-3)", fontSize: 13 }}>
-              500+ Books � Fast Delivery � Student Verified
-            </div>
-          </div>
+    <div className="min-h-screen bg-ink-900 flex items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block mb-6">
+            <Logo size="lg" />
+          </Link>
+          <h1 className="text-2xl font-extrabold text-white mb-1">
+            Welcome back
+          </h1>
+          <p className="text-white/40 text-sm">
+            Sign in to your UNN BookHub account
+          </p>
         </div>
 
-        <div
-          style={{
-            background: "var(--bg-base)",
-            display: "grid",
-            placeItems: "center",
-            padding: "32px 16px",
-          }}
+        <form
+          onSubmit={handleSubmit}
+          className="bg-ink-700 border border-white/[0.06] rounded-2xl p-7"
         >
-          <div style={{ width: "100%", maxWidth: 420 }}>
-            <div style={{ marginBottom: 20 }}>
-              <h2 style={{ fontSize: 24, fontWeight: 800 }}>Welcome back</h2>
-              <p style={{ color: "var(--text-3)", fontSize: 14 }}>
-                Sign in to continue
-              </p>
-            </div>
+          <div className="mb-4">
+            <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder="your.email@unn.edu.ng"
+              className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-amber-500/50 transition-colors"
+            />
+          </div>
 
-            <Button
-              variant="secondary"
-              fullWidth
-              style={{
-                background: "#fff",
-                color: "#1f2937",
-                border: "1px solid #e5e7eb",
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: 10,
-                }}
-              >
-                <LogIn size={18} /> Continue with Google
-              </div>
-            </Button>
-
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 12,
-                margin: "18px 0",
-              }}
-            >
-              <span
-                style={{
-                  flex: 1,
-                  height: 1,
-                  background: "var(--border-subtle)",
-                }}
+          <div className="mb-6">
+            <label className="text-white/50 text-xs font-bold uppercase tracking-wide mb-1.5 block">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                type={showPw ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                placeholder="••••••••"
+                className="w-full px-4 py-3 bg-ink-600 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-amber-500/50 transition-colors pr-12"
               />
-              <span style={{ color: "var(--text-3)", fontSize: 12 }}>or</span>
-              <span
-                style={{
-                  flex: 1,
-                  height: 1,
-                  background: "var(--border-subtle)",
-                }}
-              />
-            </div>
-
-            <div style={{ display: "grid", gap: 12 }}>
-              <Input
-                label="Email"
-                type="email"
-                placeholder="you@unn.edu.ng"
-                requiredMark
-              />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="��������"
-                requiredMark
-              />
-            </div>
-
-            <div style={{ textAlign: "right", marginTop: 8 }}>
               <button
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "var(--text-amber)",
-                  fontSize: 12,
-                  cursor: "pointer",
-                }}
+                type="button"
+                onClick={() => setShowPw(!showPw)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 text-sm"
               >
-                Forgot password?
+                {showPw ? "🙈" : "👁️"}
               </button>
             </div>
-
-            <div style={{ marginTop: 16 }}>
-              <Button variant="primary" fullWidth size="lg">
-                Sign in
-              </Button>
-            </div>
-
-            <div
-              style={{
-                marginTop: 16,
-                color: "var(--text-3)",
-                fontSize: 13,
-                textAlign: "center",
-              }}
-            >
-              New to UNN BookHub?{" "}
-              <Link
-                to="/register"
-                style={{ color: "var(--text-amber)", fontWeight: 700 }}
-              >
-                Register ?
-              </Link>
-            </div>
           </div>
-        </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3.5 rounded-xl bg-amber-500 text-ink-900 font-extrabold text-sm shadow-amber hover:bg-amber-600 transition-all duration-200 disabled:opacity-60"
+          >
+            {loading ? "Signing in..." : "Sign In"}
+          </button>
+        </form>
+
+        <p className="text-center text-white/40 text-sm mt-6">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="text-amber-500 font-bold hover:text-amber-400"
+          >
+            Create one →
+          </Link>
+        </p>
       </div>
     </div>
   );

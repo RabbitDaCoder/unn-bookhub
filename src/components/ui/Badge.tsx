@@ -1,49 +1,30 @@
-import React from 'react';
+import { type ReactNode } from "react";
 
-type Variant = 'amber' | 'success' | 'error' | 'neutral';
+interface BadgeProps {
+  children: ReactNode;
+  variant?: "default" | "success" | "warning" | "error" | "info" | "purple";
+  className?: string;
+}
 
-export function Badge({ variant = 'neutral', children }: { variant?: Variant; children: React.ReactNode }) {
-  const styles: Record<Variant, React.CSSProperties> = {
-    amber: {
-      background: 'rgba(245,158,11,0.15)',
-      color: 'var(--text-amber)',
-      border: '1px solid var(--border-amber)',
-    },
-    success: {
-      background: 'rgba(16,185,129,0.12)',
-      color: 'var(--success)',
-      border: '1px solid rgba(16,185,129,0.25)',
-    },
-    error: {
-      background: 'rgba(248,113,113,0.12)',
-      color: 'var(--error)',
-      border: '1px solid rgba(248,113,113,0.25)',
-    },
-    neutral: {
-      background: 'var(--layer-05)',
-      color: 'var(--text-3)',
-      border: '1px solid var(--border-subtle)',
-    },
+export function Badge({
+  children,
+  variant = "default",
+  className = "",
+}: BadgeProps) {
+  const variants = {
+    default: "bg-white/10 text-white/60 border-white/10",
+    success: "bg-green-400/10 text-green-400 border-green-400/20",
+    warning: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    error: "bg-red-500/10 text-red-400 border-red-500/20",
+    info: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+    purple: "bg-music-DEFAULT/10 text-music-light border-music-light/20",
   };
 
   return (
     <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 6,
-        padding: '4px 10px',
-        borderRadius: '999px',
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: 0.5,
-        textTransform: 'uppercase',
-        ...styles[variant],
-      }}
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wide ${variants[variant]} ${className}`}
     >
       {children}
     </span>
   );
 }
-
-export default Badge;

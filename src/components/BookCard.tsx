@@ -1,172 +1,83 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookCover } from './ui/BookCover';
-import { useCartStore } from '../store/useStore';
-import type { Book } from '../data/books';
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useCartStore } from "../store/useStore";
+import { BookCover } from "./ui/BookCover";
+import type { Book } from "../types";
 
 export function BookCard({ book }: { book: Book }) {
-  const navigate = useNavigate();
   const { addItem, items } = useCartStore();
-  const [adding, setAdding] = useState(false);
+  const navigate = useNavigate();
   const inCart = items.some((i) => i.id === book.id);
+  const [adding, setAdding] = useState(false);
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (inCart || !book.inStock) return;
     setAdding(true);
-    addItem(book as any);
-    setTimeout(() => setAdding(false), 450);
+    addItem(book);
+    setTimeout(() => setAdding(false), 700);
   };
-
-  const formatPrice = (n: number) =>
-    new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      maximumFractionDigits: 0,
-    }).format(n);
 
   return (
     <div
       onClick={() => navigate(`/books/${book.id}`)}
-      style={{
-        background: 'var(--bg-card)',
-        border: '1px solid var(--border-subtle)',
-        borderRadius: '16px',
-        overflow: 'hidden',
-        cursor: 'pointer',
-        transition: 'transform 0.2s ease, box-shadow 0.25s ease, border-color 0.2s ease',
-        display: 'flex',
-        flexDirection: 'column',
-        position: 'relative',
-      }}
-      onMouseEnter={(e) => {
-        const target = e.currentTarget as HTMLDivElement;
-        target.style.transform = 'translateY(-4px)';
-        target.style.boxShadow = 'var(--shadow-card-strong)';
-        target.style.borderColor = 'var(--border-amber)';
-        target.style.background = 'var(--bg-card-hover)';
-      }}
-      onMouseLeave={(e) => {
-        const t = e.currentTarget as HTMLDivElement;
-        t.style.transform = 'translateY(0)';
-        t.style.boxShadow = 'var(--shadow-card)';
-        t.style.borderColor = 'var(--border-subtle)';
-        t.style.background = 'var(--bg-card)';
-      }}
+      className="bg-ink-700 border border-white/[0.06] rounded-2xl overflow-hidden cursor-pointer group hover:border-amber-500/50 hover:-translate-y-1.5 hover:shadow-card-hover transition-all duration-300 flex flex-col relative"
     >
       {!book.inStock && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            zIndex: 2,
-            background: 'rgba(248,113,113,0.18)',
-            border: '1px solid rgba(248,113,113,0.35)',
-            color: 'var(--error)',
-            fontSize: '10px',
-            fontWeight: 700,
-            letterSpacing: '0.5px',
-            padding: '3px 10px',
-            borderRadius: '999px',
-            textTransform: 'uppercase',
-          }}
-        >
+        <div className="absolute top-4 right-0 bg-red-500/15 border-l border-y border-red-500/25 text-red-400 text-[9px] font-black px-2 py-1 uppercase tracking-wide z-10">
           Out of Stock
         </div>
       )}
 
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          height: 180,
-          overflow: 'hidden',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--bg-tertiary)',
-          borderBottom: '1px solid var(--border-faint)',
-        }}
-      >
-        <BookCover
-          courseCode={book.courseCode}
-          title={book.title}
-          color={book.coverColor}
-          size="md"
-        />
+      <div className="relative h-[190px] bg-ink-900 flex items-center justify-center overflow-hidden bg-[radial-gradient(rgba(255,255,255,0.02)_1px,transparent_1px)] [background-size:16px_16px]">
+        <div className="transition-transform duration-300 group-hover:scale-[1.03] group-hover:-translate-y-1 filter drop-shadow-xl">
+          <BookCover
+            courseCode={book.courseCode}
+            title={book.title}
+            color={book.coverColor}
+            size="md"
+          />
+        </div>
       </div>
 
-      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <span
-            style={{
-              background: 'rgba(245,158,11,0.12)',
-              color: 'var(--text-amber)',
-              border: '1px solid var(--border-amber)',
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: 1,
-              padding: '3px 9px',
-              borderRadius: 999,
-              textTransform: 'uppercase',
-              fontFamily: '"JetBrains Mono", monospace',
-            }}
-          >
+      <div className="p-4 flex flex-col gap-2 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <span className="font-mono text-[10px] font-black text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
             {book.courseCode}
           </span>
           {book.inStock && (
-            <span className="badge badge-success">In Stock</span>
+            <span className="text-[9px] font-bold text-green-400 bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full">
+              In Stock
+            </span>
           )}
         </div>
 
-        <h3
-          style={{
-            fontSize: 14,
-            fontWeight: 800,
-            color: 'var(--text-1)',
-            lineHeight: 1.4,
-            flex: 1,
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            overflow: 'hidden',
-          }}
-        >
+        <h3 className="text-white font-bold text-[13px] leading-snug line-clamp-2 flex-1">
           {book.title}
         </h3>
 
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>
-          {book.author} � {book.edition}
+        <p className="text-white/30 text-[11px]">
+          {book.author} · {book.edition}
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text-1)' }}>
-            {formatPrice(book.price)}
+        <div className="border-t border-white/[0.04] pt-3 mt-1 flex items-center justify-between">
+          <span className="text-white font-extrabold text-[17px]">
+            ₦{book.price.toLocaleString()}
           </span>
-
           <button
-            onClick={handleAddToCart}
+            onClick={handleAdd}
             disabled={!book.inStock}
-            style={{
-              width: 38,
-              height: 38,
-              borderRadius: 12,
-              border: '1px solid var(--border-amber)',
-              background: inCart ? 'rgba(16,185,129,0.12)' : 'rgba(245,158,11,0.12)',
-              color: inCart ? 'var(--success)' : 'var(--text-amber)',
-              cursor: book.inStock ? 'pointer' : 'not-allowed',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: 800,
-              fontSize: 16,
-              transition: 'transform 0.15s ease, background 0.2s ease',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-1px)')}
-            onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
-            title={inCart ? 'In cart' : 'Add to cart'}
+            className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-lg transition-all duration-200
+              ${
+                inCart
+                  ? "bg-green-500/15 border border-green-500/30 text-green-400"
+                  : book.inStock
+                    ? "bg-amber-500/15 border border-amber-500/30 text-amber-500 hover:bg-amber-500 hover:text-ink-900"
+                    : "bg-white/[0.04] text-white/20 cursor-not-allowed"
+              }
+              ${adding ? "scale-110" : ""}`}
           >
-            {adding ? '�' : inCart ? '?' : '+'}
+            {adding ? "✓" : inCart ? "✓" : "+"}
           </button>
         </div>
       </div>

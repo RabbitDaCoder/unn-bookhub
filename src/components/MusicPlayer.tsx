@@ -1,180 +1,183 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Music, X, ChevronUp, ChevronDown, Repeat, Shuffle } from 'lucide-react';
-import { PLAYLIST } from '../constants';
-import { cn } from '../lib/utils';
-import { motion, AnimatePresence } from 'motion/react';
+import { useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
+import { useMusicStore } from "../store/useStore";
 
-export default function MusicPlayer() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [volume, setVolume] = useState(0.5);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const currentTrack = PLAYLIST[currentTrackIndex];
+export function MusicPlayer() {
+  const location = useLocation();
+  const {
+    tracks,
+    currentTrackIndex,
+    isPlaying,
+    volume,
+    progress,
+    showPlayer,
+    play,
+    pause,
+    toggle,
+    next,
+    prev,
+    selectTrack,
+    setVolume,
+    setProgress,
+    setShowPlayer,
+  } = useMusicStore();
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const isLibraryRoute =
+    location.pathname.startsWith("/library") ||
+    location.pathname.startsWith("/reader");
 
   useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : volume;
-    }
-  }, [volume, isMuted]);
-
-  useEffect(() => {
-    if (isPlaying) {
-      audioRef.current?.play().catch(() => setIsPlaying(false));
+    if (isLibraryRoute) {
+      setShowPlayer(true);
     } else {
-      audioRef.current?.pause();
+      setShowPlayer(false);
+      pause();
     }
-  }, [isPlaying, currentTrackIndex]);
+  }, [isLibraryRoute, setShowPlayer, pause]);
 
-  const handleTimeUpdate = () => {
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.loop = true;
+    }
+    const audio = audioRef.current;
+    audio.src = tracks[currentTrackIndex]?.src || "";
+    if (isPlaying) audio.play().catch(() => {});
+    return () => {
+      audio.pause();
+    };
+  }, [currentTrackIndex, tracks]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying]);
+
+  useEffect(() => {
     if (audioRef.current) {
-      const current = audioRef.current.currentTime;
-      const duration = audioRef.current.duration;
-      setProgress((current / duration) * 100);
+      audioRef.current.volume = volume / 100;
     }
+  }, [volume]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const update = () => {
+      if (audio.duration) {
+        setProgress((audio.currentTime / audio.duration) * 100);
+      }
+    };
+    audio.addEventListener("timeupdate", update);
+    return () => audio.removeEventListener("timeupdate", update);
+  }, [setProgress]);
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !audio.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
   };
 
-  const handleNext = () => {
-    setCurrentTrackIndex((prev) => (prev + 1) % PLAYLIST.length);
-  };
+  const currentTrack = tracks[currentTrackIndex];
 
-  const handlePrev = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + PLAYLIST.length) % PLAYLIST.length);
-  };
+  if (!showPlayer) return null;
 
   return (
-    <div className={cn(
-      "fixed bottom-0 left-0 w-full z-[100] transition-all duration-500",
-      isExpanded ? "h-64" : "h-20"
-    )}>
-      <audio 
-        ref={audioRef} 
-        src={currentTrack.url} 
-        onTimeUpdate={handleTimeUpdate}
-        onEnded={handleNext}
-      />
+    <div
+      className={`fixed bottom-0 inset-x-0 z-50 bg-ink-900/96 backdrop-blur-2xl border-t border-music-light/20 transition-all duration-300 ${isPlaying ? "shadow-music" : ""}`}
+    >
+      <div
+        className="h-[3px] bg-white/10 cursor-pointer"
+        onClick={handleProgressClick}
+      >
+        <div
+          className="h-full bg-gradient-to-r from-music-DEFAULT to-amber-500 transition-all duration-500"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
 
-      <div className="absolute inset-0 bg-bg-dark/95 backdrop-blur-xl border-t border-white/10 shadow-2xl flex flex-col">
-        {/* Progress Bar */}
-        <div className="w-full h-1 bg-white/10 cursor-pointer group relative">
-          <div 
-            className="h-full bg-secondary transition-all duration-300" 
-            style={{ width: `${progress}%` }} 
-          />
-          <div className="absolute top-0 left-0 w-full h-full opacity-0 group-hover:opacity-100 transition-opacity bg-white/20" />
-        </div>
-
-        <div className="flex-grow flex items-center justify-between px-6 lg:px-12">
-          {/* Track Info */}
-          <div className="flex items-center space-x-4 w-1/3">
-            <div className={cn(
-              "w-12 h-12 rounded-full border-2 border-secondary flex items-center justify-center overflow-hidden transition-transform duration-1000",
-              isPlaying && "animate-[spin_4s_linear_infinite]"
-            )}>
-              <Music className="w-6 h-6 text-secondary" />
-            </div>
-            <div className="overflow-hidden">
-              <h4 className="text-white font-bold text-sm truncate">{currentTrack.title}</h4>
-              <p className="text-white/60 text-[10px] uppercase tracking-widest truncate">{currentTrack.artist}</p>
-            </div>
-          </div>
-
-          {/* Controls */}
-          <div className="flex flex-col items-center space-y-2 w-1/3">
-            <div className="flex items-center space-x-6">
-              <button onClick={handlePrev} className="text-white/60 hover:text-white transition-colors">
-                <SkipBack className="w-5 h-5" />
-              </button>
-              <button 
-                onClick={() => setIsPlaying(!isPlaying)}
-                className="w-12 h-12 bg-secondary hover:bg-secondary/90 text-white rounded-full flex items-center justify-center shadow-lg transition-all active:scale-95"
-              >
-                {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-1" />}
-              </button>
-              <button onClick={handleNext} className="text-white/60 hover:text-white transition-colors">
-                <SkipForward className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="hidden lg:flex items-center space-x-2 text-[10px] text-white/40 font-bold uppercase tracking-widest">
-              <span>Now Playing in Nnamdi Azikiwe Library</span>
-              <div className="flex space-x-0.5 items-end h-3">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <motion.div 
+      <div className="max-w-7xl mx-auto px-4 lg:px-12 h-[68px] flex items-center gap-4 md:gap-8">
+        {/* Track info */}
+        <div className="flex items-center gap-3 min-w-0 flex-1 md:flex-none md:w-56">
+          <div className="w-10 h-10 rounded-xl bg-music-DEFAULT/40 flex-shrink-0 flex items-center justify-center text-xl relative overflow-hidden">
+            🎵
+            {isPlaying && (
+              <div className="absolute inset-0 flex items-end justify-center gap-px pb-1">
+                {[0.4, 0.8, 0.5, 1, 0.6].map((h, i) => (
+                  <div
                     key={i}
-                    animate={{ height: isPlaying ? [4, 12, 6, 10, 4] : 4 }}
-                    transition={{ repeat: Infinity, duration: 0.5 + i * 0.1 }}
-                    className="w-0.5 bg-secondary"
+                    className="w-[3px] bg-music-light/60 rounded-full animate-music-pulse"
+                    style={{
+                      height: `${h * 60}%`,
+                      animationDelay: `${i * 120}ms`,
+                    }}
                   />
                 ))}
               </div>
-            </div>
+            )}
           </div>
-
-          {/* Volume & Toggle */}
-          <div className="flex items-center justify-end space-x-6 w-1/3">
-            <div className="hidden md:flex items-center space-x-3">
-              <button onClick={() => setIsMuted(!isMuted)} className="text-white/60 hover:text-white transition-colors">
-                {isMuted || volume === 0 ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-              </button>
-              <input 
-                type="range" 
-                min="0" 
-                max="1" 
-                step="0.01" 
-                value={volume}
-                onChange={(e) => setVolume(parseFloat(e.target.value))}
-                className="w-24 accent-secondary h-1 bg-white/10 rounded-full appearance-none cursor-pointer"
-              />
-            </div>
-            <button 
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg transition-all"
-            >
-              {isExpanded ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
-            </button>
+          <div className="min-w-0">
+            <p className="text-white text-sm font-bold truncate">
+              {currentTrack?.title}
+            </p>
+            <p className="text-white/40 text-xs truncate">
+              {currentTrack?.genre}
+            </p>
           </div>
         </div>
 
-        {/* Expanded View (Playlist) */}
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 20 }}
-              className="flex-grow px-12 pb-8 overflow-y-auto scrollbar-hide"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {PLAYLIST.map((track, i) => (
-                  <button 
-                    key={i}
-                    onClick={() => {
-                      setCurrentTrackIndex(i);
-                      setIsPlaying(true);
-                    }}
-                    className={cn(
-                      "flex items-center space-x-4 p-3 rounded-xl transition-all text-left group",
-                      currentTrackIndex === i ? "bg-secondary text-white" : "hover:bg-white/5 text-white/60"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-10 h-10 rounded-lg flex items-center justify-center",
-                      currentTrackIndex === i ? "bg-white/20" : "bg-white/5 group-hover:bg-white/10"
-                    )}>
-                      <Music className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h5 className="font-bold text-sm">{track.title}</h5>
-                      <p className="text-[10px] uppercase tracking-widest opacity-60">{track.artist}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Controls */}
+        <div className="flex items-center gap-3 flex-1 justify-center">
+          <button
+            onClick={prev}
+            className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-lg"
+          >
+            ⏮
+          </button>
+          <button
+            onClick={toggle}
+            className="w-11 h-11 rounded-full bg-amber-500 hover:bg-amber-600 flex items-center justify-center text-ink-900 text-xl shadow-amber transition-all duration-200 hover:scale-105 flex-shrink-0"
+          >
+            {isPlaying ? "⏸" : "▶"}
+          </button>
+          <button
+            onClick={next}
+            className="w-8 h-8 flex items-center justify-center text-white/50 hover:text-white transition-colors text-lg"
+          >
+            ⏭
+          </button>
+        </div>
+
+        {/* Volume + track selector */}
+        <div className="hidden md:flex items-center gap-4 w-56 justify-end">
+          <span className="text-white/40 text-sm">🔊</span>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-24 accent-music-DEFAULT"
+          />
+          <select
+            value={currentTrackIndex}
+            onChange={(e) => selectTrack(Number(e.target.value))}
+            className="bg-ink-600 border border-white/10 rounded-lg text-white/60 text-xs px-2 py-1 max-w-[100px] truncate"
+          >
+            {tracks.map((t, i) => (
+              <option key={t.id} value={i}>
+                {t.title}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );
